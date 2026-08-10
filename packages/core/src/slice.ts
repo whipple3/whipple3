@@ -33,19 +33,34 @@ export const availableWork = (
   return [...state.nodes.values()].filter((n) => matches(n) && !claimed(n));
 };
 
-export const neighborhood = (state: GraphState, root: NodeId, depth: number): Slice => {
+/**
+ * One BFS for both public slices. `canSee` filters DURING traversal, not after: an
+ * unreadable node blocks its whole path and never leaks via an edge endpoint. (SPEC §4.6)
+ */
+const bfs = (
+  state: GraphState,
+  root: NodeId,
+  depth: number,
+  canSee: (label: string) => boolean,
+): Slice => {
+  const visible = (id: NodeId): boolean => {
+    const n = state.nodes.get(id);
+    return n !== undefined && canSee(n.label);
+  };
+
   const seen = new Set<NodeId>();
-  let frontier: readonly NodeId[] = state.nodes.has(root) ? [root] : [];
+  let frontier: readonly NodeId[] = visible(root) ? [root] : [];
   for (const id of frontier) seen.add(id);
 
   for (let d = 0; d < depth && frontier.length > 0; d++) {
     const next: NodeId[] = [];
     for (const edge of state.edges.values()) {
-      if (frontier.includes(edge.from) && !seen.has(edge.to)) {
+      if (!canSee(edge.label)) continue;
+      if (frontier.includes(edge.from) && !seen.has(edge.to) && visible(edge.to)) {
         seen.add(edge.to);
         next.push(edge.to);
       }
-      if (frontier.includes(edge.to) && !seen.has(edge.from)) {
+      if (frontier.includes(edge.to) && !seen.has(edge.from) && visible(edge.from)) {
         seen.add(edge.from);
         next.push(edge.from);
       }
@@ -58,6 +73,23 @@ export const neighborhood = (state: GraphState, root: NodeId, depth: number): Sl
     const n = state.nodes.get(id);
     if (n !== undefined) nodes.push(n);
   }
-  const edges = [...state.edges.values()].filter((e) => seen.has(e.from) && seen.has(e.to));
+  const edges = [...state.edges.values()].filter(
+    (e) => canSee(e.label) && seen.has(e.from) && seen.has(e.to),
+  );
   return { nodes, edges };
+};
+
+/** The unfiltered primitive — internal/trusted callers (studio, replay) only. */
+export const neighborhood = (state: GraphState, root: NodeId, depth: number): Slice =>
+  bfs(state, root, depth, () => true);
+
+/** The policy-filtered slice LLM-facing reads must go through. (SPEC §4.6, §4.7) */
+export const readableNeighborhood = (
+  state: GraphState,
+  root: NodeId,
+  depth: number,
+  readable: readonly string[],
+): Slice => {
+  const allowed = new Set(readable);
+  return bfs(state, root, depth, (label) => allowed.has(label));
 };

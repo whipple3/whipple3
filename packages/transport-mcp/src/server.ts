@@ -36,7 +36,7 @@ export const createServer = (session: AgentConnection): McpServer => {
       description: "Read a scoped slice: the neighborhood of a root node.",
       inputSchema: toolInputs.blackboard_read,
     },
-    (args) => asToolResult(session.read(args)),
+    async (args) => asToolResult(await session.read(args)),
   );
 
   server.registerTool(
@@ -54,7 +54,7 @@ export const createServer = (session: AgentConnection): McpServer => {
       description: "Pull the next pending work item for a label, skipping claimed nodes.",
       inputSchema: toolInputs.blackboard_next,
     },
-    (args) => asToolResult(session.next(args)),
+    async (args) => asToolResult(await session.next(args)),
   );
 
   server.registerTool(

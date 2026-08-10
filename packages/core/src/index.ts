@@ -1,7 +1,7 @@
 /** The only public gate of @whipple3/core. No deep imports. (SPEC §5) */
 
-export type { AclError, AclPolicy } from "./acl.js";
-export { checkAcl } from "./acl.js";
+export type { AclError, AclPolicy, AgentAcl } from "./acl.js";
+export { checkAcl, checkRead, readableLabels } from "./acl.js";
 export type { EventMeta, LogRecord, Whipple3Event } from "./events.js";
 export type { AgentId, Brand, EdgeId, NodeId, Principal, SessionId, TxId, Version } from "./ids.js";
 export {
@@ -23,6 +23,6 @@ export type { EdgeType, NodeType, Trigger } from "./schema.js";
 export { defineEdge, defineNode } from "./schema.js";
 
 export type { Slice } from "./slice.js";
-export { availableWork, neighborhood } from "./slice.js";
+export { availableWork, neighborhood, readableNeighborhood } from "./slice.js";
 export type { ClaimRecord, EdgeRecord, GraphState, NodeRecord } from "./state.js";
 export { emptyState } from "./state.js";

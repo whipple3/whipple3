@@ -1,7 +1,7 @@
 import { type AclPolicy, agentId, nodeId, principal, sessionId, txId } from "@whipple3/core";
 import { createMemoryLog } from "@whipple3/log";
 import { describe, expect, it } from "vitest";
-import { createSession } from "../src/session.js";
+import { createSession, type Session } from "../src/session.js";
 
 const makeSession = (acl: AclPolicy | null = null) => {
   let now = 0;
@@ -27,6 +27,26 @@ const fileNode = (path: string, id = "f1") => ({
     props: { path, status: "pending" },
   },
 });
+
+const demoAcl: AclPolicy = {
+  scanner: { write: ["CodeFile"], read: ["CodeFile"] },
+  auditor: {
+    write: ["SecurityIssue", "HAS_ISSUE"],
+    read: ["CodeFile", "SecurityIssue", "HAS_ISSUE"],
+  },
+  // The read-side point: reporter may see issues but never the code files behind them.
+  reporter: { write: [], read: ["SecurityIssue", "HAS_ISSUE"] },
+};
+
+const seedIssueGraph = async (as: (id: string) => ReturnType<Session["connect"]>) => {
+  await as("scanner").post(fileNode("a.ts"));
+  await as("auditor").post({
+    mutation: { kind: "ADD_NODE", id: "i1", label: "SecurityIssue", props: { severity: "high" } },
+  });
+  await as("auditor").post({
+    mutation: { kind: "ADD_EDGE", id: "e1", label: "HAS_ISSUE", from: "f1", to: "i1" },
+  });
+};
 
 describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", () => {
   it("post ADD_NODE updates state and appends a graph.mutation record with full meta", async () => {
@@ -63,7 +83,10 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
   });
 
   it("identity comes from the connection: a payload-asserted agentId cannot escalate ACL", async () => {
-    const { as, log } = makeSession({ scanner: ["CodeFile"], fixer: ["Fix"] });
+    const { as, log } = makeSession({
+      scanner: { write: ["CodeFile"], read: ["CodeFile"] },
+      fixer: { write: ["Fix"], read: ["Fix"] },
+    });
     const scanner = as("scanner");
 
     const allowed = await scanner.post({ agentId: "fixer", ...fileNode("a.ts") });
@@ -76,24 +99,33 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
       mutation: { kind: "ADD_NODE", id: "x1", label: "Fix", props: {} },
     });
     expect(escalation.ok).toBe(false);
-    if (!escalation.ok && escalation.error.code === "ACL_DENIED") {
+    if (!escalation.ok && escalation.error.code === "ACL_DENIED_WRITE") {
       expect(escalation.error.agentId).toBe("scanner");
     } else {
-      throw new Error("expected ACL_DENIED for the connection's own identity");
+      throw new Error("expected ACL_DENIED_WRITE for the connection's own identity");
     }
   });
 
-  it("ACL denies labels outside the agent's allowlist and leaves state and log untouched", async () => {
-    const { session, as, log } = makeSession({ scanner: ["CodeFile"] });
+  it("a write denial leaves state untouched and appends an acl.denied event", async () => {
+    const { session, as, log } = makeSession({
+      scanner: { write: ["CodeFile"], read: ["CodeFile"] },
+    });
     const scanner = as("scanner");
     expect((await scanner.post(fileNode("a.ts"))).ok).toBe(true);
     const denied = await scanner.post({
       mutation: { kind: "ADD_NODE", id: "i1", label: "SecurityIssue", props: {} },
     });
     expect(denied.ok).toBe(false);
-    if (!denied.ok) expect(denied.error.code).toBe("ACL_DENIED");
+    if (!denied.ok) expect(denied.error.code).toBe("ACL_DENIED_WRITE");
     expect(session.snapshot().nodes.size).toBe(1);
-    expect(await log.read()).toHaveLength(1);
+    const records = await log.read();
+    expect(records).toHaveLength(2);
+    expect(records[1]?.event).toEqual({
+      type: "acl.denied",
+      agentId: "scanner",
+      label: "SecurityIssue",
+      reason: "write",
+    });
   });
 
   it("a stale expectedVersion surfaces VERSION_CONFLICT with the current version", async () => {
@@ -139,7 +171,7 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     await scanner.post(fileNode("a.ts", "f1"));
     await scanner.post(fileNode("b.ts", "f2"));
 
-    const first = as("auditor-1").next({ label: "CodeFile", match: { status: "pending" } });
+    const first = await as("auditor-1").next({ label: "CodeFile", match: { status: "pending" } });
     expect(first.ok).toBe(true);
     if (first.ok) {
       expect(first.value.node?.id).toBe("f1");
@@ -147,11 +179,11 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     }
 
     await as("auditor-1").claim({ id: "f1", ttlMs: 1000 });
-    const second = as("auditor-2").next({ label: "CodeFile", match: { status: "pending" } });
+    const second = await as("auditor-2").next({ label: "CodeFile", match: { status: "pending" } });
     if (second.ok) expect(second.value.node?.id).toBe("f2");
 
     tick(2000);
-    const again = as("auditor-2").next({ label: "CodeFile", match: { status: "pending" } });
+    const again = await as("auditor-2").next({ label: "CodeFile", match: { status: "pending" } });
     if (again.ok) expect(again.value.pending).toBe(2);
   });
 
@@ -165,12 +197,51 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     await auditor.post({
       mutation: { kind: "ADD_EDGE", id: "e1", label: "HAS_ISSUE", from: "f1", to: "i1" },
     });
-    const r = auditor.read({ root: "f1", depth: 1 });
+    const r = await auditor.read({ root: "f1", depth: 1 });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.nodes.map((n) => n.id).sort()).toEqual(["f1", "i1"]);
       expect(r.value.edges).toHaveLength(1);
     }
+  });
+
+  it("read is policy-filtered: a reader without CodeFile access cannot see it via a neighbor", async () => {
+    const { as } = makeSession(demoAcl);
+    await seedIssueGraph(as);
+    const r = await as("reporter").read({ root: "i1", depth: 2 });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.nodes.map((n) => n.id)).toEqual(["i1"]);
+      expect(r.value.edges).toEqual([]);
+    }
+  });
+
+  it("an explicit read of an unreadable root is denied with ACL_DENIED_READ and logged", async () => {
+    const { as, log } = makeSession(demoAcl);
+    await seedIssueGraph(as);
+    const denied = await as("reporter").read({ root: "f1", depth: 1 });
+    expect(denied.ok).toBe(false);
+    if (!denied.ok && denied.error.code === "ACL_DENIED_READ") {
+      expect(denied.error.label).toBe("CodeFile");
+    } else {
+      throw new Error("expected ACL_DENIED_READ");
+    }
+    const records = await log.read();
+    expect(records.at(-1)?.event).toEqual({
+      type: "acl.denied",
+      agentId: "reporter",
+      label: "CodeFile",
+      reason: "read",
+    });
+  });
+
+  it("next for an unreadable label is denied and logged, not silently emptied", async () => {
+    const { as, log } = makeSession(demoAcl);
+    await seedIssueGraph(as);
+    const denied = await as("reporter").next({ label: "CodeFile", match: {} });
+    expect(denied.ok).toBe(false);
+    if (!denied.ok) expect(denied.error.code).toBe("ACL_DENIED_READ");
+    expect((await log.read()).at(-1)?.event.type).toBe("acl.denied");
   });
 
   it("status counts nodes, edges and only unexpired claims", async () => {

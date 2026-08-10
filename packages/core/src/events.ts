@@ -23,6 +23,12 @@ export interface EventMeta {
  */
 export type Whipple3Event =
   | { readonly type: "graph.mutation"; readonly mutation: Mutation }
+  | {
+      readonly type: "acl.denied";
+      readonly agentId: string;
+      readonly label: string;
+      readonly reason: "read" | "write";
+    }
   | { readonly type: "claim.acquired"; readonly nodeId: string; readonly agentId: string }
   | { readonly type: "claim.released"; readonly nodeId: string; readonly agentId: string }
   | { readonly type: "claim.expired"; readonly nodeId: string; readonly agentId: string }

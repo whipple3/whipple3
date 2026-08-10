@@ -5,6 +5,7 @@ import {
   apply,
   availableWork,
   checkAcl,
+  checkRead,
   type EventMeta,
   edgeId,
   emptyState,
@@ -18,6 +19,8 @@ import {
   ok,
   type Principal,
   type Result,
+  readableLabels,
+  readableNeighborhood,
   type SessionId,
   type Slice,
   type TxId,
@@ -101,10 +104,21 @@ export const createSession = (deps: SessionDeps) => {
     correlationId,
   });
 
+  /** Denials are audit events, never silent drops. (SPEC §4.6) */
+  const deny = async (agent: AgentId, e: AclError): Promise<Result<never, AclError>> => {
+    await deps.log.append(meta(agent, deps.newTxId()), {
+      type: "acl.denied",
+      agentId: agent as string,
+      label: e.label,
+      reason: e.code === "ACL_DENIED_READ" ? "read" : "write",
+    });
+    return err(e);
+  };
+
   const commit = async (agent: AgentId, m: Mutation): Promise<Result<TxId, SessionError>> => {
     if (deps.acl !== null) {
       const gate = checkAcl(deps.acl, agent, m, state);
-      if (!gate.ok) return gate;
+      if (!gate.ok) return deny(agent, gate.error);
     }
     const applied = apply(state, m);
     if (!applied.ok) return applied;
@@ -147,9 +161,15 @@ export const createSession = (deps: SessionDeps) => {
       return ok({ txId: committed.value, expiresAt: at + parsed.value.ttlMs });
     },
 
-    next(input: unknown): Result<{ node: NodeRecord | null; pending: number }, ParseError> {
+    async next(
+      input: unknown,
+    ): Promise<Result<{ node: NodeRecord | null; pending: number }, ParseError | AclError>> {
       const parsed = parseWith(toolInputs.blackboard_next, input);
       if (!parsed.ok) return parsed;
+      if (deps.acl !== null) {
+        const gate = checkRead(deps.acl, agent, parsed.value.label);
+        if (!gate.ok) return deny(agent, gate.error);
+      }
       const found = availableWork(
         state,
         { label: parsed.value.label, match: parsed.value.match },
@@ -158,10 +178,21 @@ export const createSession = (deps: SessionDeps) => {
       return ok({ node: found[0] ?? null, pending: found.length });
     },
 
-    read(input: unknown): Result<Slice, ParseError> {
+    async read(input: unknown): Promise<Result<Slice, ParseError | AclError>> {
       const parsed = parseWith(toolInputs.blackboard_read, input);
       if (!parsed.ok) return parsed;
-      return ok(neighborhood(state, nodeId(parsed.value.root), parsed.value.depth));
+      const root = nodeId(parsed.value.root);
+      if (deps.acl === null) return ok(neighborhood(state, root, parsed.value.depth));
+      // Asking for an unreadable root is an explicit denial; unreadable neighbors are
+      // silently filtered — the engine shapes the slice, the agent never widens it.
+      const rootNode = state.nodes.get(root);
+      if (rootNode !== undefined) {
+        const gate = checkRead(deps.acl, agent, rootNode.label);
+        if (!gate.ok) return deny(agent, gate.error);
+      }
+      return ok(
+        readableNeighborhood(state, root, parsed.value.depth, readableLabels(deps.acl, agent)),
+      );
     },
 
     status(): SessionStatus {
