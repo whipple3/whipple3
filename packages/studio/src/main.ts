@@ -1,14 +1,12 @@
 import type { LogRecord } from "@whipple3/core";
 import Graph from "graphology";
 import Sigma from "sigma";
+import { flashOnUpdate } from "./flash.js";
 import { nodeHistory } from "./history.js";
 import { assignLayout } from "./layout.js";
 import { emptyModel, foldRecord, modelAt, type StudioModel } from "./model.js";
 import { renderPanel } from "./panel.js";
 import { syncGraph } from "./render.js";
-
-const FLASH_SIZE = 15;
-const FLASH_MS = 600;
 
 const byId = (id: string): HTMLElement => {
   const found = document.getElementById(id);
@@ -57,14 +55,15 @@ const refresh = (): void => {
   renderStatus();
 };
 
-/** UPDATE_NODE pulse: cosmetic; the next syncGraph restores the model-derived size. */
-const flashOnUpdate = (record: LogRecord): void => {
-  if (record.event.type !== "graph.mutation" || record.event.mutation.kind !== "UPDATE_NODE")
-    return;
-  const id = record.event.mutation.id;
-  if (!graph.hasNode(id)) return;
-  graph.setNodeAttribute(id, "size", FLASH_SIZE);
-  window.setTimeout(() => syncGraph(graph, model), FLASH_MS);
+// restore reads `model` at fire time on purpose: whatever the board looks like
+// when the pulse ends is what the node size falls back to.
+const flashRecord = (record: LogRecord): void => {
+  flashOnUpdate(
+    graph,
+    record,
+    () => syncGraph(graph, model),
+    (fn, ms) => window.setTimeout(fn, ms),
+  );
 };
 
 sigma.on("clickNode", ({ node }) => {
@@ -105,7 +104,7 @@ source.addEventListener("record", (evt: Event) => {
     model = foldRecord(model, record);
     position = records.length - 1;
     refresh();
-    flashOnUpdate(record);
+    flashRecord(record);
   } else {
     refresh(); // grows the scrubber range; the paused snapshot stays put
   }
