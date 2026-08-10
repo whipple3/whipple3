@@ -95,7 +95,20 @@ filtering, principal).
 > `whipple3 serve` UDS backend + per-agent `mcp --board` proxies with cross-process
 > identity proof (W2-B); Studio claim tinting, history panel, time-travel scrubber,
 > ForceAtlas2 (W2-C); role-declared slice DSL with the ACL-narrowing property (W2-D).
-> **W2-E launched post-merge** on the serve backend.
+> **W2-E CLOSED 2026-08-11** — /audit rewired over the serve backend with FIVE per-agent
+> identities (three auditors need three real identities: shared-identity re-claim would
+> be "renewal" per D2 — the very hole D1 closes), fixer HITL as host-enforced allowlists
+> + PreToolUse ask-hook + prompt protocol, topology proven headlessly with per-agent log
+> attribution. Remaining unproven: the live Claude Code run (spawn/approval, real
+> permission prompts, hook agent_type, command `!` preflight).
+
+## Wave 3 additions to the contract queue (from W2-E, 2026-08-11)
+
+- `whipple3 serve --acl <file>` — serve hardcodes `acl: null`, so SPEC §8's per-agent
+  write discipline is host-allowlist + prompt only; a policy-file flag makes checkAcl
+  real in the demo and lights up `acl.denied` in distill.
+- npm publish (W3-B) unblocks the `.mcp.json`'s `npx whipple3`; until then README
+  requires `npm link`.
 
 ## Wave 2 — LAUNCHED 2026-08-10 (after the pre-wave contract pass, `5df5111`)
 
