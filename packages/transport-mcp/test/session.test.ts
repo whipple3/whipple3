@@ -48,6 +48,37 @@ const seedIssueGraph = async (as: (id: string) => ReturnType<Session["connect"]>
   });
 };
 
+describe("board lifetime is a parameter, not an assumption (SPEC §4.8)", () => {
+  it("defaults to ephemeral and accepts it explicitly", async () => {
+    const { as } = makeSession(); // no lifetime given — ephemeral
+    expect((await as("scanner").post(fileNode("a.ts"))).ok).toBe(true);
+    const explicit = createSession({
+      log: createMemoryLog(),
+      acl: null,
+      sessionId: sessionId("s2"),
+      principal: null,
+      lifetime: "ephemeral",
+      now: () => 0,
+      newTxId: () => txId("t"),
+    });
+    expect(explicit.connect(agentId("scanner"))).toBeDefined();
+  });
+
+  it("'persistent' is accepted by the type but rejected at runtime as not implemented", () => {
+    expect(() =>
+      createSession({
+        log: createMemoryLog(),
+        acl: null,
+        sessionId: sessionId("s2"),
+        principal: null,
+        lifetime: "persistent",
+        now: () => 0,
+        newTxId: () => txId("t"),
+      }),
+    ).toThrow(/not implemented/);
+  });
+});
+
 describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", () => {
   it("post ADD_NODE updates state and appends a graph.mutation record with full meta", async () => {
     const { session, as, log } = makeSession();

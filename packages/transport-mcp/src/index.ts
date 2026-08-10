@@ -1,6 +1,7 @@
 export { createServer, liveSessionDeps, serveStdio } from "./server.js";
 export type {
   AgentConnection,
+  BoardLifetime,
   ParseError,
   Session,
   SessionDeps,

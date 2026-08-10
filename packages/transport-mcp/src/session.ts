@@ -38,6 +38,15 @@ export interface ParseError {
 
 export type SessionError = ParseError | AclError | MutationError;
 
+/**
+ * Board lifetime is a PARAMETER, never an assumption: nothing may hardcode
+ * "session end ⇒ purge". Purge (Stage 2) is an explicit action gated by this policy —
+ * not a side effect of a session ending, and never core's business. "persistent"
+ * (multi-process boards) is reserved: the type admits it so persistence lands as
+ * config, not refactor; the runtime rejects it until it exists. (SPEC §4.8)
+ */
+export type BoardLifetime = "ephemeral" | "persistent";
+
 export interface SessionDeps {
   readonly log: LogStore;
   /** null = no ACL configured: the host's tool allowlist is the only gate. (SPEC §4.6) */
@@ -45,6 +54,8 @@ export interface SessionDeps {
   readonly sessionId: SessionId;
   /** On whose behalf this session runs. Injected: local env in OSS, SSO in enterprise. */
   readonly principal: Principal | null;
+  /** Defaults to "ephemeral" — the only implemented mode in v0.1. */
+  readonly lifetime?: BoardLifetime;
   readonly now: () => number;
   readonly newTxId: () => TxId;
 }
@@ -90,6 +101,11 @@ export interface SessionStatus {
 }
 
 export const createSession = (deps: SessionDeps) => {
+  if ((deps.lifetime ?? "ephemeral") === "persistent")
+    throw new Error(
+      "board lifetime 'persistent' is not implemented — only 'ephemeral' boards exist in v0.1 " +
+        "(the parameter is reserved so persistence arrives as config, not refactor; ROADMAP Stage 5+)",
+    );
   let state: GraphState = emptyState();
   // One trace per session; causation chains arrive with push dispatch (Phase 2, SPEC §4.5).
   const correlationId = deps.newTxId();

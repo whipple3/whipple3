@@ -98,6 +98,10 @@ The **append-only event log is the source of truth**. The graph is a materialize
 
 Slicing is **push-model**: the engine computes the minimal slice and injects it at dispatch; agents cannot read beyond it. Pull-mode reads obey the same principle: `blackboard_read` and `blackboard_next` return the **policy-filtered** slice (`readableNeighborhood`) — the engine decides what the agent sees; the agent never widens its own scope. The **graph carries metadata and pointers/hashes only** — blobs (file contents, diffs) live on the filesystem/data plane, never in node properties.
 
+### 4.8 Board lifetime
+
+Lifetime is a **parameter of the session config** (`BoardLifetime`), never an assumption baked into code. v0.1 implements only `"ephemeral"`; `"persistent"` (long-lived boards shared by sessions from different processes) is admitted by the type and rejected at runtime until it exists — persistence must arrive as config, not refactor. Purge is an **explicit action** triggered by the lifetime policy — never an implicit side effect of a session ending, and never called from core. Core (reducer, claims, ACL, slices) stays lifetime-agnostic.
+
 ## 5. Packages & ports
 
 ```
