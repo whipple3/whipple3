@@ -197,6 +197,36 @@ Michael-side — the wave delivers the instruments and the kit, not the launch i
   only; SPEC already scopes graphology to studio). Rule 6 says every dependency is a
   decision — approve before install.
 
+## Wave 4 — QUEUED (next session starts here)
+
+Pre-wave contract pass first, as always. The queue, by priority:
+
+**W4 contract pass (integration session, on main):**
+1. `serve`/`connectBoard`: guard the UDS `sun_path` limit (104B macOS / 108B Linux) —
+   refuse too-long socket paths with a clear error; map client ENOTSOCK to a human
+   explanation. Found by the live run.
+2. `/audit` preflight: real `connect()` probe instead of a file-existence check.
+3. Plugin min host version: identify the Claude Code version that loads plugin
+   `.mcp.json` (2.1.138 does NOT — commands/agents load, MCP servers don't); pin it in
+   plugin.json/README and document the `--mcp-config` fallback (works today, server
+   names must be `plugin_whipple3_whipple3-<agent>` to match frontmatter tool prefixes).
+
+**W4 packages (parallelizable after the pass):**
+- **W4-A polish:** studio FA2 gravity tuning (sparse-pair spread), UPDATE-flash visual
+  verification, drop dangling sourcemaps in lib dists, split session.ts if it crosses
+  ~300 lines while touched.
+- **W4-B hosts (ROADMAP Stage 5):** run the same board against Codex CLI / Gemini CLI /
+  opencode / Cursor; one results row per host in README. UDS backend already exists.
+- **W4-C bench live:** after Michael's vanilla-side runs per tools/bench/RUNBOOK.md,
+  fill the launch post's benchmark TODO with the real table, losses included.
+
+**Michael-side (blocks launch, not Wave 4):** LICENSE legal name → GitHub org + push →
+npm org → Studio recording (scrubber drag 0→66 on the demo log) → vanilla benchmark
+runs → `pnpm publish` (pnpm only!) → v0.1.0 tag → posts. See docs/launch/checklist.md.
+
+**After launch (ROADMAP, unchanged):** Stage 6 push scheduler · Stage 7 OTel/evals ·
+Stage 8 ecosystem · Stage 9 commercial optionality — none enter MIT beyond the line.
+
 ## Contract-change requests
 
 *(append here during a wave; applied only at the wave boundary)*
