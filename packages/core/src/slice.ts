@@ -9,8 +9,8 @@ export interface Slice {
 
 /**
  * Context slicing, push-model: the engine computes the minimal slice and injects it at
- * dispatch — agents cannot read beyond it. (SPEC §4.7)
- * v0.1: BFS neighborhood. TODO(W1+): role-declared slices in the schema.
+ * dispatch — agents cannot read beyond it. (SPEC §4.7) Two tiers: BFS neighborhood
+ * (depth-bounded) and role-declared slices (`sliceFor`, declaration-bounded).
  */
 /**
  * The pull-mode work queue: `when()` triggers compile to exactly this query. (SPEC §4.4)
