@@ -21,9 +21,11 @@ What's real today:
   the full event taxonomy. One runtime dependency: Zod. Property-tested with fast-check.
 - `@arai/log` — `LogStore` port with memory and NDJSON adapters, verified by a shared
   conformance suite.
-- `@arai/transport-mcp` — the five blackboard tool schemas (`post` / `read` / `claim` /
-  `next` / `status`). Server wiring lands in W1.
-- `arai` — the CLI shell (`init` / `mcp` / `studio` / `replay`).
+- `@arai/transport-mcp` — the five blackboard tools (`post` / `read` / `claim` / `next` /
+  `status`): session shell (parse → ACL → apply → append) and a stdio MCP server, tested
+  over a real client round-trip.
+- `arai` — the CLI: `arai mcp` serves the blackboard and writes the session trace to
+  `.arai/session-<timestamp>.ndjson` (`init` / `studio` / `replay` are still stubs).
 
 First target: a shared blackboard for **Claude Code subagents** — parallel workers that
 claim tasks instead of colliding, with a live graph Studio. See `examples/claude-code-plugin/`.
@@ -32,7 +34,13 @@ claim tasks instead of colliding, with a live graph Studio. See `examples/claude
 
 ```bash
 pnpm install
-pnpm typecheck && pnpm lint && pnpm depcruise && pnpm test
+pnpm typecheck && pnpm lint && pnpm depcruise && pnpm build && pnpm test
+```
+
+Hook the blackboard into Claude Code (or any MCP host):
+
+```bash
+claude mcp add --transport stdio arai -- node packages/cli/dist/main.js mcp
 ```
 
 ## Design
