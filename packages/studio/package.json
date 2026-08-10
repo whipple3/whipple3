@@ -5,6 +5,19 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "dev": "node dev.mjs",
+    "dev:fixture": "WHIPPLE3_FIXTURE=1 node dev.mjs",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@whipple3/core": "workspace:*",
+    "@whipple3/log": "workspace:*",
+    "@whipple3/transport-mcp": "workspace:*",
+    "graphology": "^0.26.0",
+    "sigma": "^3.0.3"
+  },
+  "devDependencies": {
+    "graphology-types": "^0.24.8",
+    "vite": "^8.2.1"
   }
 }

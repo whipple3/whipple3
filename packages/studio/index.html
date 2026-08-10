@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>whipple3 studio</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0e1116;
+        color: #d7dde6;
+        font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      #status {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 2;
+        padding: 6px 12px;
+        background: rgba(14, 17, 22, 0.85);
+        border-bottom: 1px solid #232a35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #graph {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="graph"></div>
+    <div id="status">whipple3 studio — waiting for records…</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
