@@ -90,19 +90,25 @@ filtering, principal).
 
 ---
 
-## Wave 2 — after Wave 1 merges
+## Wave 2 — LAUNCHED 2026-08-10 (after the pre-wave contract pass, `5df5111`)
+
+Pre-wave contract pass already landed on main (rulings on the Wave-1 queue):
+`blackboard_release` is the sixth tool; `claim.acquired/released` are emitted as
+observational events (replay truth stays `graph.mutation`; `claim.expired` reserved for
+the scheduler); SPEC §4.1/§5/§6 caught up to reality; cli split one-command-per-file —
+`main.ts` is a FROZEN registry.
 
 | Pkg | Mission | Owned paths | Needs |
 |---|---|---|---|
-| **W2-A** | Lifecycle: `distill()` → report, explicit lifetime-gated purge, retained trace | `packages/transport-mcp/src/session.ts`, `packages/cli/**`, `packages/log/**` | — |
-| **W2-B** | Shared-state backend: `whipple3 serve` + stdio↔socket proxy, identity from socket | `packages/transport-uds/**` (new), `packages/cli/**` (mcp/serve cmds) | **D1** |
-| **W2-C** | Studio live: claim tinting, click→history, time-travel scrubber over `replay` | `packages/studio/**` | W1-C |
-| **W2-D** | Role-declared slices replacing raw BFS depth | `packages/core/src/schema.ts`, `slice.ts` | W1-B |
-| **W2-E** | Plugin demo + fixer HITL gate; per-agent wiring per D1 | `examples/**` | W2-B |
+| **W2-A** | Lifecycle: `whipple3 distill <log>` → report.md; explicit lifetime-gated purge; jsonl incremental read (port UNCHANGED) | `packages/transport-mcp/src/**` + `test/**`, `packages/cli/src/distill.ts`, `packages/log/**` | — |
+| **W2-B** | Shared-state backend: `whipple3 serve` owns one session over UDS; `mcp --agent X` becomes a per-agent proxy; identity bound at socket connect | `packages/transport-uds/**` (new), `packages/cli/src/mcp.ts`, `packages/cli/src/serve.ts`, `packages/cli/test/**`, root workspace/depcruise config for the new package | — |
+| **W2-C** | Studio live: claim tinting off `claim.*` events, click→history, time-travel scrubber over `replay`, force layout (`graphology-layout-force` approved) | `packages/studio/**` | — |
+| **W2-D** | Role-declared slices in the schema DSL + pure slice honoring them — CORE ONLY; transport wiring is a Wave-3 boundary item | `packages/core/src/**` + `test/**` | — |
+| **W2-E** | Plugin demo + fixer HITL gate; per-agent wiring over the serve backend | `examples/**` | W2-B merged |
 
-W2-A and W2-B both touch cli — **serialize them or split cli command files first** at the
-integration pass of Wave 1. W2-A must respect SPEC §4.8: purge is an explicit action
-triggered by the lifetime policy, never an implicit end-of-session effect.
+W2-A must respect SPEC §4.8: purge is an explicit action triggered by the lifetime
+policy, never an implicit end-of-session effect, and never core's business. W2-E
+launches only after W2-B lands at the integration pass.
 
 ---
 
