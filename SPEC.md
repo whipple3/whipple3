@@ -79,7 +79,7 @@ The **append-only event log is the source of truth**. The graph is a materialize
 ### 4.5 Concurrency & safety
 
 - **Optimistic versioning per node** — a mutation carries the expected version; mismatch is rejected with current state returned.
-- **Claims/leases** — `claim(nodeId, agentId, ttl)` with injected time; expiry releases work. No duplicate work across parallel agents.
+- **Claims/leases** — `claim(nodeId, agentId, ttl)` with injected time; expiry releases work. No duplicate work across parallel agents. A claim gates *dispatch*, not writes: `blackboard_next` hides claimed nodes and a rival claim is refused, but `UPDATE_NODE` is deliberately not claim-gated — optimistic versioning is the write-safety net, so a holder finishing after its lease expired is caught by version conflict, never by a lock.
 - **Causality chain** — every event carries `causationId`/`correlationId`. The same chain serves cycle detection and hop budgets (safety) and trace propagation (observability).
 - **Quiescence** (Phase 2, push mode): all agents idle ∧ queues empty ∧ no in-flight work ∧ settle window.
 
@@ -92,8 +92,13 @@ The **append-only event log is the source of truth**. The graph is a materialize
   log as an `acl.denied` event: enforcement leaves a trail, never a silent drop.
 - **Identity is bound to the connection, never self-declared.** No tool payload carries an
   `agentId`; the transport binds one at `session.connect` (stdio: one server process per
-  agent, `whipple3 mcp --agent <id>`; UDS in Phase 2: one socket per agent). An ACL keyed
-  on a name the payload can assert is decorative.
+  agent, `whipple3 mcp --agent <id>`; UDS: one socket per agent). An ACL keyed
+  on a name the payload can assert is decorative. One identity holds at most one live
+  socket — a second hello is refused (`IDENTITY_IN_USE`), because two workers sharing a
+  name would renew each other's leases and dissolve the claim protection. The socket is
+  the trust boundary, guarded by filesystem permissions alone: any local process that can
+  reach it may declare any *free* identity — which is exactly what the host-allowlist
+  second gate below exists for.
 - **Host permission systems as a second gate** (Claude Code `tools` allowlists in v0.1).
 - **HITL gates** for high-impact mutations (e.g., a fixer's changes require approval).
 - Taint/provenance labeling for agents processing untrusted input: **designed for, deferred to Phase 2.**

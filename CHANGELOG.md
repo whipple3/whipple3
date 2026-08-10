@@ -25,6 +25,11 @@ dependency-cruiser import direction, Vitest + fast-check property tests).
 - `blackboard_next` is pull-mode dispatch: "what's for me?" — pending nodes matching
   label and props, excluding anything under a valid claim, filtered by what the asking
   agent may read.
+- LLM-facing inputs are budgeted at the parse boundary: claim ttl ≤ 1 hour, props
+  ≤ 16 KiB of JSON, ids and labels from a closed alphabet (≤ 256 chars, no whitespace
+  or backticks — they cross verbatim into report markdown and Studio). The
+  control-plane rule — paths and hashes, never contents — is enforced, not just
+  prompted.
 - The core reducer is pure — no I/O, no clock, no randomness, time and IDs injected —
   which is what makes replay, time-travel, and property testing possible at all.
 
@@ -33,6 +38,10 @@ dependency-cruiser import direction, Vitest + fast-check property tests).
 - An agent's identity is bound at connect time — one server process (or one socket) per
   agent. No tool payload carries an `agentId`, so no agent can impersonate another; an
   ACL keyed on a self-declared name would be decorative.
+- One identity, at most one live connection: the board refuses a second hello for a
+  name already bound (`IDENTITY_IN_USE`) — two workers sharing an identity would renew
+  each other's leases and dissolve the claim protection. The identity frees when its
+  socket closes.
 - Every event also records a `principal`: on whose behalf the session runs
   (`WHIPPLE3_PRINCIPAL`, falling back to the OS user). "Michael's auditor did this,"
   not just "auditor did this" — attribution is captured at write time because it is
@@ -94,6 +103,8 @@ dependency-cruiser import direction, Vitest + fast-check property tests).
   pure reducer, not a feature bolted on.
 - Live/paused SSE streaming over `ReadonlyLog`; ForceAtlas2 layout. All graph-rendering
   dependencies live only in the studio package.
+- The log tail reports a stall (e.g. a poisoned line that fails every reread) to the
+  dev-server terminal instead of starving silently; a successful poll re-arms it.
 
 ### Claude Code plugin demo: `/whipple3:audit`
 

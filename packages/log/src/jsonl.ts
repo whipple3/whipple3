@@ -12,6 +12,11 @@ const NEWLINE = 0x0a;
  * raw buffer: 0x0A cannot occur inside a UTF-8 multibyte sequence, while character indexes
  * would drift on non-ASCII payloads. subscribe() only observes in-process appends —
  * cross-process tailing polls read(). (W1-C request (c))
+ * Concurrency contract: any number of reading processes, exactly ONE live appender per
+ * file — append() takes no lock, so two concurrent writers would race the seq
+ * assignment. scan() exists so a fresh appender indexes what a previous (dead) writer
+ * left behind and so readers see foreign appends — not to make concurrent writers safe.
+ * The board topology satisfies this by construction: one serve process owns the log.
  * TODO(next): SQLite adapter, preferring built-in node:sqlite (SPEC §10).
  */
 export const createJsonlLog = (path: string): LogStore => {

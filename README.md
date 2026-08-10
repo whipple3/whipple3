@@ -37,7 +37,10 @@ servers dial the socket once, at session start. Optional `--policy policy.json` 
 label-level read/write ACLs per agent — every denial is logged, never silently dropped.
 
 **3. Connect agents** — terminal 2, same directory. One proxy process per agent; identity is
-bound to the socket, never self-declared in a payload:
+bound to the socket, never self-declared in a payload, and one identity holds at most one
+live connection (a second hello is refused). The socket itself is the trust boundary,
+guarded by filesystem permissions alone — any local process that can reach it may declare
+any free identity, which is why the host's per-agent tool allowlists stay the second gate:
 
 ```bash
 claude mcp add --transport stdio whipple3-main -- whipple3 mcp --board .whipple3/board.sock --agent main
