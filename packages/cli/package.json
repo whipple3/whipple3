@@ -7,12 +7,6 @@
   "bin": {
     "whipple3": "./dist/main.js"
   },
-  "exports": {
-    ".": {
-      "types": "./dist/main.d.ts",
-      "import": "./dist/main.js"
-    }
-  },
   "files": [
     "dist"
   ],
@@ -21,10 +15,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "citty": "^0.1.6"
+  },
+  "devDependencies": {
     "@whipple3/core": "workspace:*",
     "@whipple3/log": "workspace:*",
     "@whipple3/transport-mcp": "workspace:*",
-    "@whipple3/transport-uds": "workspace:*",
-    "citty": "^0.1.6"
+    "@whipple3/transport-uds": "workspace:*"
   }
 }
