@@ -1,7 +1,10 @@
+export type { AgentActivity, SessionSummary } from "./distill.js";
+export { renderReport, summarize } from "./distill.js";
+export type { BoardLifetime, PurgeError } from "./lifetime.js";
+export { checkPurge } from "./lifetime.js";
 export { createServer, liveSessionDeps, serveStdio } from "./server.js";
 export type {
   AgentConnection,
-  BoardLifetime,
   ParseError,
   Session,
   SessionDeps,

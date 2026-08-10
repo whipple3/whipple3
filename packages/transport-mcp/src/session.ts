@@ -29,6 +29,7 @@ import {
 } from "@whipple3/core";
 import type { LogStore } from "@whipple3/log";
 import type { z } from "zod";
+import { type BoardLifetime, checkPurge, type PurgeError } from "./lifetime.js";
 import { toolInputs } from "./tools.js";
 
 export interface ParseError {
@@ -37,15 +38,6 @@ export interface ParseError {
 }
 
 export type SessionError = ParseError | AclError | MutationError;
-
-/**
- * Board lifetime is a PARAMETER, never an assumption: nothing may hardcode
- * "session end ⇒ purge". Purge (Stage 2) is an explicit action gated by this policy —
- * not a side effect of a session ending, and never core's business. "persistent"
- * (multi-process boards) is reserved: the type admits it so persistence lands as
- * config, not refactor; the runtime rejects it until it exists. (SPEC §4.8)
- */
-export type BoardLifetime = "ephemeral" | "persistent";
 
 export interface SessionDeps {
   readonly log: LogStore;
@@ -101,7 +93,8 @@ export interface SessionStatus {
 }
 
 export const createSession = (deps: SessionDeps) => {
-  if ((deps.lifetime ?? "ephemeral") === "persistent")
+  const lifetime = deps.lifetime ?? "ephemeral";
+  if (lifetime === "persistent")
     throw new Error(
       "board lifetime 'persistent' is not implemented — only 'ephemeral' boards exist in v0.1 " +
         "(the parameter is reserved so persistence arrives as config, not refactor; ROADMAP Stage 5+)",
@@ -110,7 +103,8 @@ export const createSession = (deps: SessionDeps) => {
   // One trace per session; causation chains arrive with push dispatch (Phase 2, SPEC §4.5).
   const correlationId = deps.newTxId();
 
-  const meta = (agent: AgentId, tx: TxId): EventMeta => ({
+  /** agent = null marks a session-level action (distill/purge) — no connection behind it. */
+  const meta = (agent: AgentId | null, tx: TxId): EventMeta => ({
     txId: tx,
     sessionId: deps.sessionId,
     agentId: agent,
@@ -251,7 +245,28 @@ export const createSession = (deps: SessionDeps) => {
     },
   });
 
-  return { connect, snapshot: (): GraphState => state };
+  /** Tier 3 of the lifecycle: record that the run's findings were exported. (SPEC §4.3) */
+  const distill = async (summary: string): Promise<{ txId: TxId }> => {
+    const tx = deps.newTxId();
+    await deps.log.append(meta(null, tx), { type: "session.distilled", summary });
+    return { txId: tx };
+  };
+
+  /**
+   * Tier 1 of the lifecycle: discard the working graph. EXPLICIT by contract — nothing
+   * in this module calls it; a session ending, distilling, or disconnecting never does.
+   * The trace log (tier 2) is untouched: replay can always reconstruct. (SPEC §4.8)
+   */
+  const purge = async (): Promise<Result<{ txId: TxId }, PurgeError>> => {
+    const gate = checkPurge(lifetime);
+    if (!gate.ok) return gate;
+    state = emptyState();
+    const tx = deps.newTxId();
+    await deps.log.append(meta(null, tx), { type: "session.purged" });
+    return ok({ txId: tx });
+  };
+
+  return { connect, snapshot: (): GraphState => state, distill, purge };
 };
 
 export type Session = ReturnType<typeof createSession>;
