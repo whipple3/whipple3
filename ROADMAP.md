@@ -6,6 +6,7 @@ happen if the stage before them earned them.
 
 Canonical design: `SPEC.md`. Working brief for the coding agent: `CLAUDE.md`.
 Parallel-session execution plan: `docs/plans/2026-08-10-swarm-waves.md`.
+Hebrew edition: `ROADMAP.he.md` (this file is canonical).
 
 ---
 
@@ -27,7 +28,7 @@ The skeleton, green end to end.
 
 ---
 
-## Stage 1 — First write to the graph ✅ CODE-COMPLETE (2026-08-10)
+## Stage 1 — First write to the graph ✅ DONE
 
 The moment it stops being documents.
 
@@ -58,17 +59,18 @@ The moment it stops being documents.
 
 **Done means:** a Claude Code subagent posts a node, a second one claims it, and the JSONL
 log shows both with correct identity and causality.
-**Status:** code-complete and e2e-tested over stdio; the live two-subagent run on a real
-Claude Code host is the remaining checkbox — gated on the shared-state topology decision
-(D1 in the waves plan).
+**Status:** e2e-tested over stdio; D1 resolved by the UDS board (`whipple3 serve` +
+`@whipple3/transport-uds`, pulled forward from Stage 5). The live run on an interactive
+Claude Code host is now a launch-checklist item (`docs/launch/checklist.md` §2).
 
 **Not in this stage:** studio, scheduler, XState, UDS, OTel, sandboxes, DSL inference polish.
 
 ---
 
-## Stage 2 — Parallel work that doesn't collide
+## Stage 2 — Parallel work that doesn't collide ✅ DONE
 
-The coordination claim, proven.
+The coordination claim, proven. The five-agent `/audit` demo ran e2e: three parallel
+auditors, zero duplicate claims, zero lost updates (evidence: README hosts table).
 
 - Three auditor subagents running concurrently against one blackboard: claims, lease
   expiry on abandonment, zero duplicate work.
@@ -83,9 +85,11 @@ and the run completes without an orchestrator babysitting it.
 
 ---
 
-## Stage 3 — Studio: the thing people screenshot
+## Stage 3 — Studio: the thing people screenshot ✅ DONE (CLI wiring pending)
 
 The adoption driver. This is the stage that decides whether anyone ever hears about whipple3.
+Built and working via `pnpm --filter @whipple3/studio dev <log>`; the `whipple3 studio` /
+`whipple3 replay` commands are the remaining stubs.
 
 - Vite + vanilla TS + sigma.js over graphology, fed by SSE from `ReadonlyLog`.
   graphology lives only here.
@@ -101,9 +105,11 @@ without narration.
 
 ---
 
-## Stage 4 — Proof and launch
+## Stage 4 — Proof and launch ⟵ CURRENT
 
-Claims become measurements.
+Claims become measurements. Code side largely banked (bench harness + a live whipple3-side
+run, docs, packaging); what remains is mostly Michael-side — the ordered, canonical list is
+`docs/launch/checklist.md`.
 
 - **Benchmark harness:** same audit task, whipple3 vs. vanilla subagents (everything funneled
   through parent summaries). Measure orchestrator-context tokens, wall time, findings
@@ -119,15 +125,16 @@ Claims become measurements.
 
 ---
 
-## Stage 5 — Host-agnostic
+## Stage 5 — Host-agnostic — STARTED
 
 Turning "not locked to any vendor" from a claim into a recording.
 
 - Same server against Codex CLI, Gemini CLI, opencode, Cursor — one page of results per host.
+  The compatibility table is live in the README (honest rows only, per-host evidence in
+  `docs/hosts/`); what remains is full authenticated runs on each host.
 - **UDS transport** (`@whipple3/transport-uds`): socket-per-agent, NDJSON, identity from the
-  socket. Needed once whipple3 runs processes we spawn ourselves.
-  *(A minimal shared-state backend may be pulled forward to Stage 2 — see D1 in the
-  waves plan: per-agent identity on a real host needs it.)*
+  socket. *Shipped — pulled forward to Stage 2 (D1 in the waves plan: per-agent identity on
+  a real host needed it).*
 - `SandboxProvider` port: dockerode adapter first; E2B / Daytona / NanoClaw-pattern adapters
   after. We ride the execution layer, we never rebuild it.
 
