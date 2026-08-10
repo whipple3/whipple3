@@ -82,6 +82,37 @@ load effects). All 6 results get reported — no picking the best.
   from `<sessionId>/subagents/` — nothing to pass.
 - Board log (run A only): `<repo>/.whipple3/session-*.ndjson`.
 
+**Newest-file is not enough when attempts failed** (learned on the 2026-08-11 live run,
+where 9 sessions from one hour shared the directory). Identify the run by content:
+
+- The first line of every session is a `queue-operation` enqueue whose `content` is the
+  exact prompt typed — grep it to separate `/whipple3:audit` runs from smoke tests.
+- A completed run-A session ends at the fixer's HITL `AskUserQuestion` tool call and has
+  one sidecar pair per spawned agent under `<sessionId>/subagents/`: `agent-*.jsonl`
+  plus `agent-*.meta.json`, the meta naming the `agentType`
+  (e.g. `whipple3:whipple3-scanner`) — the extractor reads it for per-agent attribution.
+- Aborted attempts (proxy dead / MCP servers never connected) die within ~60 s with
+  `tool_result` lines carrying `is_error: true` on blackboard tools. They contain NO
+  API-level synthetic error lines — the API never failed, the tools did.
+- Match the board log to the session independently: distill's session ULID and record
+  count must agree with what the transcript's tool calls imply.
+
+## 3.5 Bank one side as soon as it exists
+
+Runs A and B rarely land the same minute. Extract and commit each side immediately —
+same rows as compare, per-agent-type subagent table, NO verdicts (those only exist
+against a counterpart):
+
+```sh
+node tools/bench/dist/main.js extract <session>.jsonl \
+  --board <repo>/.whipple3/session-<ts>.ndjson --out results/<date>-<side>.md
+```
+
+Copy the raw transcript (with its `subagents/` dir), board log, and distill report into
+`tools/bench/results/` beside the extraction, unmodified — the eventual compare must
+need nothing outside the repo. Banked so far: `results/2026-08-11-live-whipple3.md`
+(run A1, N=1; vanilla side pending).
+
 ## 4. Compare
 
 ```sh

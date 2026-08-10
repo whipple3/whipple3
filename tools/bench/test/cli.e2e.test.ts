@@ -42,6 +42,44 @@ const EXPECTED_TABLE = `# whipple3 vs vanilla — audit benchmark
 - Findings quality: not machine-judged — compare the two run reports (RUNBOOK).
 `;
 
+/** One-sided extraction: bank a run's numbers before its counterpart exists (RUNBOOK). */
+const EXPECTED_EXTRACT = `# bench extract — one session, no verdicts
+
+| metric (main thread) | value |
+| --- | ---: |
+| orchestrator context (in+out) | 38,662 |
+| context in (input+cache write+cache read) | 37,812 |
+| output | 850 |
+| API requests | 3 |
+| tool calls | 4 |
+| wall time | 6m 0s |
+| subagent context (sidecar files) | 61,500 (3 files) |
+| total context incl. subagents | 100,162 |
+
+## Subagent context by agent type
+
+| agent type | requests | context in | output | context total |
+| --- | ---: | ---: | ---: | ---: |
+| (untyped) | 2 | 20,000 | 500 | 20,500 |
+| (untyped) | 2 | 20,000 | 500 | 20,500 |
+| (untyped) | 2 | 20,000 | 500 | 20,500 |
+
+## Board log (whipple3 run)
+
+| metric | value |
+| --- | ---: |
+| findings | CodeFile: 3, SecurityIssue: 2 |
+| contested claims | 1 |
+| reworked nodes | 1 |
+| ACL denials | 0 |
+| agents | auditor-1, auditor-2, auditor-3, scanner |
+
+## Status
+
+- One-sided extraction (N=1): comparison verdicts need the counterpart run (RUNBOOK §2).
+- Duplicate work: 1 contested claim(s), 1 reworked node(s) — DUPLICATE WORK PRESENT.
+`;
+
 describe("bench CLI — the pipeline proof end to end (no LLM anywhere)", () => {
   it("mock writes the pair + real board log and prints the exact comparison", async () => {
     if (!existsSync(bin)) throw new Error("dist/main.js missing — run `pnpm build` first");
@@ -78,6 +116,31 @@ describe("bench CLI — the pipeline proof end to end (no LLM anywhere)", () => 
         join(dir, "vanilla-main.jsonl"),
       ])
     ).stdout;
+    expect(out).not.toContain("## Board log");
+    expect(out).toContain("- Duplicate work: no board log provided (--board) — not measured.");
+  });
+
+  it("extract renders one side alone — same row labels, no verdicts, board included", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bench-cli-"));
+    await run("node", [bin, "mock", dir]);
+    const boardLogs = readdirSync(join(dir, ".whipple3")).filter((f) => f.endsWith(".ndjson"));
+    const out = await run("node", [
+      bin,
+      "extract",
+      join(dir, "whipple3-main.jsonl"),
+      "--board",
+      join(dir, ".whipple3", boardLogs[0] ?? ""),
+      "--out",
+      join(dir, "extract.md"),
+    ]);
+    expect(out.stdout).toBe(EXPECTED_EXTRACT);
+    expect(readFileSync(join(dir, "extract.md"), "utf8")).toBe(EXPECTED_EXTRACT);
+  });
+
+  it("extract without --board says duplicates were not measured", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bench-cli-"));
+    await run("node", [bin, "mock", dir]);
+    const out = (await run("node", [bin, "extract", join(dir, "vanilla-main.jsonl")])).stdout;
     expect(out).not.toContain("## Board log");
     expect(out).toContain("- Duplicate work: no board log provided (--board) — not measured.");
   });
