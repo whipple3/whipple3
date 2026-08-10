@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": ".", "types": ["node"] },
-  "include": ["src", "conformance"]
+  "include": ["src", "conformance", "test"]
 }
