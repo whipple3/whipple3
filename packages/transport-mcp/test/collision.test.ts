@@ -194,3 +194,77 @@ describe("collision proof — N agents, one session, interleaved loops (Stage 2)
     expect(f1?.props).toMatchObject({ a: true, b: true });
   });
 });
+
+const seedFile = async (as: ReturnType<typeof makeSession>["as"]) => {
+  await as("scanner").post({
+    mutation: { kind: "ADD_NODE", id: "f1", label: "CodeFile", props: { status: "pending" } },
+  });
+};
+
+describe("lease abandonment and renewal (Stage 2; D2 ruled 2026-08-10)", () => {
+  it("an abandoned lease expires: next() readmits the node and another agent can claim it", async () => {
+    const { as, log, tick } = makeSession();
+    await seedFile(as);
+    await as("auditor-1").claim({ id: "f1", ttlMs: 1000 }); // claims, then vanishes
+
+    const hidden = await as("auditor-2").next({ label: "CodeFile", match: { status: "pending" } });
+    if (!hidden.ok) throw new Error("next failed");
+    expect(hidden.value).toEqual({ node: null, pending: 0 });
+
+    const refused = await as("auditor-2").claim({ id: "f1", ttlMs: 1000 });
+    if (refused.ok || refused.error.code !== "ALREADY_CLAIMED")
+      throw new Error("expected ALREADY_CLAIMED before expiry");
+    expect(refused.error.holder).toBe("auditor-1");
+
+    tick(1000); // the lease expires exactly at ttl — no release ever arrives
+    const readmitted = await as("auditor-2").next({
+      label: "CodeFile",
+      match: { status: "pending" },
+    });
+    if (!readmitted.ok) throw new Error("next failed");
+    expect(readmitted.value.node?.id).toBe("f1");
+    expect(readmitted.value.pending).toBe(1);
+
+    const takeover = await as("auditor-2").claim({ id: "f1", ttlMs: 1000 });
+    expect(takeover.ok).toBe(true);
+
+    // The trail shows both grants — abandonment leaves evidence, not mystery.
+    const claims = (await mutationsOf(log)).filter((m) => m.kind === "CLAIM_NODE");
+    expect(claims.map((c) => c.agentId)).toEqual(["auditor-1", "auditor-2"]);
+  });
+
+  it("D2: a same-agent re-claim RENEWS the lease — extended, not rejected, blocking others past the original expiry", async () => {
+    const { as, tick } = makeSession();
+    await seedFile(as);
+    const first = await as("auditor-1").claim({ id: "f1", ttlMs: 1000 });
+    if (!first.ok) throw new Error("claim failed");
+    expect(first.value.expiresAt).toBe(1000);
+
+    tick(600);
+    const renewed = await as("auditor-1").claim({ id: "f1", ttlMs: 1000 });
+    expect(renewed.ok).toBe(true);
+    if (renewed.ok) expect(renewed.value.expiresAt).toBe(1600);
+
+    tick(500); // t=1100: past the ORIGINAL expiry, inside the renewed lease
+    const refused = await as("auditor-2").claim({ id: "f1", ttlMs: 1000 });
+    if (refused.ok || refused.error.code !== "ALREADY_CLAIMED")
+      throw new Error("expected ALREADY_CLAIMED during the renewed lease");
+    expect(refused.error.holder).toBe("auditor-1");
+
+    tick(500); // t=1600: the renewed lease has now lapsed too
+    expect((await as("auditor-2").claim({ id: "f1", ttlMs: 1000 })).ok).toBe(true);
+  });
+
+  it("a refusal names the CURRENT holder after an expiry takeover, never the stale one", async () => {
+    const { as, tick } = makeSession();
+    await seedFile(as);
+    await as("auditor-1").claim({ id: "f1", ttlMs: 1000 }); // abandons
+    tick(1000);
+    await as("auditor-2").claim({ id: "f1", ttlMs: 1000 }); // takes over
+
+    const refused = await as("auditor-3").claim({ id: "f1", ttlMs: 1000 });
+    if (refused.ok || refused.error.code !== "ALREADY_CLAIMED")
+      throw new Error("expected ALREADY_CLAIMED from the takeover holder");
+    expect(refused.error.holder).toBe("auditor-2");
+  });
+});
