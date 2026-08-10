@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.arai/
 *.tsbuildinfo
 .DS_Store
 coverage/

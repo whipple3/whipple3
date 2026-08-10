@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { mkdirSync } from "node:fs";
+import { createJsonlLog } from "@arai/log";
+import { createSession, liveSessionDeps, serveStdio } from "@arai/transport-mcp";
 import { defineCommand, runMain } from "citty";
 
 const stub = (name: string) =>
@@ -9,6 +12,22 @@ const stub = (name: string) =>
     },
   });
 
+const mcp = defineCommand({
+  meta: { name: "mcp", description: "Start the arai blackboard MCP server on stdio." },
+  async run() {
+    mkdirSync(".arai", { recursive: true });
+    const stamp = new Date().toISOString().replaceAll(":", "-");
+    const session = createSession({
+      log: createJsonlLog(`.arai/session-${stamp}.ndjson`),
+      // v0.1: the host's tool allowlist is the gate; schema-level ACL config arrives with the plugin demo.
+      acl: null,
+      ...liveSessionDeps(),
+    });
+    // stdout is the MCP wire from here on — nothing else may print to it.
+    await serveStdio(session);
+  },
+});
+
 const main = defineCommand({
   meta: {
     name: "arai",
@@ -17,7 +36,7 @@ const main = defineCommand({
   },
   subCommands: {
     init: stub("init"),
-    mcp: stub("mcp"),
+    mcp,
     studio: stub("studio"),
     replay: stub("replay"),
   },
