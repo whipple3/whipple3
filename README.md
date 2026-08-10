@@ -6,11 +6,15 @@
 
 **A typed, ephemeral, event-sourced blackboard for coordinating AI agents.**
 
-NanoClaw isolates one agent from your machine. **whipple3 coordinates many agents with each other.**
+One agent doesn't need whipple3. **Two do.**
 
-Agents don't chat and don't funnel everything through an orchestrator's context. They read and
-write a shared typed graph through structured, versioned, ACL-checked mutations. The append-only
-event log is the source of truth — so every session is auditable and replayable by construction.
+Keep your framework. whipple3 slots underneath it: agents don't chat and don't funnel everything
+through an orchestrator's context — they read and write a shared typed graph through structured,
+versioned, ACL-checked mutations. Every mutation passes one enforcement point, and the append-only
+event log — not the graph — is the source of truth, so every session is auditable and replayable
+by construction.
+
+NanoClaw isolates one agent from your machine. whipple3 coordinates many agents with each other.
 
 ## Quick start — repo to working board
 
@@ -123,7 +127,9 @@ pnpm typecheck && pnpm lint && pnpm depcruise && pnpm build && pnpm test
 
 ## Design
 
-Read [SPEC.md](./SPEC.md); the decision records live in [docs/adr/](./docs/adr/). The short
+Read [SPEC.md](./SPEC.md); the decision records live in [docs/adr/](./docs/adr/), and where
+whipple3 sits relative to LangGraph, CrewAI, Letta and the CLI agents is in
+[docs/positioning.md](./docs/positioning.md). The short
 version: functional core / imperative shell; the log is the truth and the graph is a view;
 pull-mode dispatch for host runtimes (Claude Code) now, push-mode reactive runtime later;
 MCP as the agent-facing surface — model-agnostic by construction, bring your own key.

@@ -3,6 +3,40 @@
 The canonical design document is [SPEC.md](./SPEC.md); decisions live in
 [docs/adr/](./docs/adr/). This file is the 60-second version.
 
+## Where it sits
+
+Not inside any agent's loop — the plane they all touch, and the only point in the picture
+where a rule can be enforced. (Why that framing: [docs/positioning.md](./docs/positioning.md).)
+
+```
+      agent A                agent B                agent C
+ ┌───────────────┐      ┌───────────────┐      ┌───────────────┐
+ │  LLM → tools  │      │  LLM → tools  │      │  LLM → tools  │
+ │   → sandbox   │      │   → sandbox   │      │   → sandbox   │
+ └───────┬───────┘      └───────┬───────┘      └───────┬───────┘
+         │        post / claim / read / release        │
+         ▼                      ▼                      ▼
+ ══════════════════════════════════════════════════════════════
+   whipple3 — shared typed state
+   checkAcl → apply → append         ← the one enforcement point
+ ══════════════════════════════════════════════════════════════
+                        │  append-only log = the truth
+      ┌─────────────────┼──────────────────┐
+      ▼                 ▼                  ▼
+ blackboard_next     Studio          distill → your
+ (next turn's        (live graph,     memory system
+  context: sliced,    time travel)
+  ACL-filtered)
+      │
+      └──→ replay → CI assertions
+```
+
+The return arrow into an agent's next turn is fed by *other agents' writes*, not by that
+agent's own history — which is why this is a coordination layer and not a memory layer.
+The sandbox isolates agent ↔ machine; whipple3 mediates agent ↔ agent.
+
+## How it's built
+
 ```
      agents (Claude Code subagents, any MCP host)
             │  six MCP tools over stdio: post / read / claim / release / next / status
