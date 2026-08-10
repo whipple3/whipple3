@@ -2,6 +2,16 @@
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": { "enabled": true, "rules": { "recommended": true } },
   "files": {
-    "includes": ["packages/**", "examples/**", "*.json", "*.md", "!**/dist", "!**/*.tsbuildinfo"]
+    "includes": [
+      "packages/**",
+      "examples/**",
+      "tools/**",
+      "*.json",
+      "*.md",
+      "*.ts",
+      "*.cjs",
+      "!**/dist",
+      "!**/*.tsbuildinfo"
+    ]
   }
 }
