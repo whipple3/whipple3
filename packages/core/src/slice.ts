@@ -1,5 +1,5 @@
 import type { NodeId } from "./ids.js";
-import type { Trigger } from "./schema.js";
+import type { FollowRule, SliceDecl, Trigger } from "./schema.js";
 import type { EdgeRecord, GraphState, NodeRecord } from "./state.js";
 
 export interface Slice {
@@ -92,4 +92,96 @@ export const readableNeighborhood = (
 ): Slice => {
   const allowed = new Set(readable);
   return bfs(state, root, depth, (label) => allowed.has(label));
+};
+
+/** An edge participates in a rule only in its declared endpoint labels, either direction. */
+const pairMatches = (a: string, b: string, rule: FollowRule): boolean =>
+  (a === rule.from && b === rule.to) || (a === rule.to && b === rule.from);
+
+/**
+ * Role-declared slicing — the declarative replacement for raw BFS depth. (SPEC §4.7,
+ * ROADMAP Stage 2.) Same leak rule as readableNeighborhood: what the declaration doesn't
+ * include is never emitted, and an excluded (undeclared OR unreadable) node blocks
+ * traversal through itself. The declaration can only NARROW the read ACL — every check
+ * intersects with `readable` — so sliceFor(...) ⊆ readableNeighborhood(...), by property test.
+ */
+export const sliceFor = (
+  state: GraphState,
+  root: NodeId,
+  decl: SliceDecl,
+  readable: readonly string[],
+): Slice => {
+  const allowed = new Set(readable);
+  const rootNode = state.nodes.get(root);
+  if (rootNode === undefined || rootNode.label !== decl.root || !allowed.has(rootNode.label)) {
+    return { nodes: [], edges: [] };
+  }
+
+  const seen = new Set<NodeId>([root]);
+
+  /** Up to rule.hops consecutive hops along rule.edge; returns every node the rule reached. */
+  const expand = (starts: ReadonlySet<NodeId>, rule: FollowRule): ReadonlySet<NodeId> => {
+    const reached = new Set<NodeId>();
+    if (!allowed.has(rule.edge)) return reached;
+    const visited = new Set(starts);
+    let frontier = starts;
+    for (let h = 0; h < rule.hops && frontier.size > 0; h++) {
+      const next = new Set<NodeId>();
+      for (const edge of state.edges.values()) {
+        if (edge.label !== rule.edge) continue;
+        for (const [near, far] of [
+          [edge.from, edge.to],
+          [edge.to, edge.from],
+        ] as const) {
+          if (!frontier.has(near)) continue;
+          const nearNode = state.nodes.get(near);
+          const farNode = state.nodes.get(far);
+          if (nearNode === undefined || farNode === undefined) continue;
+          if (!pairMatches(nearNode.label, farNode.label, rule)) continue;
+          if (!allowed.has(farNode.label)) continue;
+          reached.add(far);
+          seen.add(far);
+          if (!visited.has(far)) {
+            visited.add(far);
+            next.add(far);
+          }
+        }
+      }
+      frontier = next;
+    }
+    return reached;
+  };
+
+  const walk = (starts: ReadonlySet<NodeId>, rules: readonly FollowRule[]): void => {
+    for (const rule of rules) {
+      const reached = expand(starts, rule);
+      if (reached.size > 0) walk(reached, rule.next);
+    }
+  };
+  walk(new Set([root]), decl.follow);
+
+  const flat: FollowRule[] = [];
+  const flatten = (rules: readonly FollowRule[]): void => {
+    for (const r of rules) {
+      flat.push(r);
+      flatten(r.next);
+    }
+  };
+  flatten(decl.follow);
+
+  const nodes: NodeRecord[] = [];
+  for (const id of seen) {
+    const n = state.nodes.get(id);
+    if (n !== undefined) nodes.push(n);
+  }
+  const declaredBy = (e: EdgeRecord): boolean => {
+    const a = state.nodes.get(e.from);
+    const b = state.nodes.get(e.to);
+    if (a === undefined || b === undefined) return false;
+    return flat.some((r) => e.label === r.edge && pairMatches(a.label, b.label, r));
+  };
+  const edges = [...state.edges.values()].filter(
+    (e) => allowed.has(e.label) && seen.has(e.from) && seen.has(e.to) && declaredBy(e),
+  );
+  return { nodes, edges };
 };

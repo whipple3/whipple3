@@ -23,6 +23,6 @@ export type { EdgeType, FollowRule, NodeType, SliceDecl, Trigger } from "./schem
 export { defineEdge, defineNode, defineSlice, follow } from "./schema.js";
 
 export type { Slice } from "./slice.js";
-export { availableWork, neighborhood, readableNeighborhood } from "./slice.js";
+export { availableWork, neighborhood, readableNeighborhood, sliceFor } from "./slice.js";
 export type { ClaimRecord, EdgeRecord, GraphState, NodeRecord } from "./state.js";
 export { emptyState } from "./state.js";
