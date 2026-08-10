@@ -162,7 +162,8 @@ describe("board server — socket path lifecycle", () => {
     await poster.post(postFile("f1"));
     await server.close();
     expect(existsSync(socketPath)).toBe(false);
-    await expect(poster.status()).rejects.toThrow(/closed/);
+    // Which teardown event wins the race decides the message; both mean "connection died".
+    await expect(poster.status()).rejects.toThrow(/closed|ended by the other party/);
   });
 
   it("reclaims a stale socket file nobody is listening on", async () => {

@@ -46,9 +46,11 @@ still reviews the diff/output).
 - [ ] **[automatable]** Version bump to 0.1.0 across `packages/*/package.json`
       (+ the CLI's citty `version` string, currently "0.0.0"); `npm pack` smoke test
       per package (W3-B's tarball check).
-- [ ] **[Michael]** `npm publish` in dependency order:
-      **core → log → transport-mcp → transport-uds → cli**
-      (each package's deps must exist on the registry before it).
+- [ ] **[Michael]** `pnpm publish` — MUST be pnpm, not npm: the `workspace:*` rewrite,
+      the `publishConfig` exports swap, and root-LICENSE injection are pnpm behaviors
+      (`npm publish` would ship a broken manifest — W3-B). Dependency order for the four
+      libs: **core → log → transport-mcp → transport-uds**; the cli can publish anytime
+      (its workspace deps are inlined by tsup and declared dev-only).
 - [ ] **[automatable]** Post-publish smoke: `npx whipple3@0.1.0 serve` + `mcp` from an
       empty directory on a clean machine/container — this is what unblocks the
       plugin's `.mcp.json` `npx whipple3` and retires the `npm link` path in

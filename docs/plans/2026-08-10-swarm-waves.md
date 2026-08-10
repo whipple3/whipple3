@@ -132,6 +132,15 @@ launches only after W2-B lands at the integration pass.
 
 ---
 
+> **STATUS: Wave 3 CLOSED 2026-08-11.** All three merged; final gate 191 + 33 bench
+> tests green with build. Integration pass: tools/* folded into root scripts (W3-A's
+> request), version strings → 0.1.0 via cli/src/version.ts, studio dev.mjs `--` bug
+> fixed, plugin README updated for --policy + Node 22, checklist corrected to
+> pnpm-publish-only (W3-B's finding), flaky socket-close assertion widened (both
+> messages satisfy the contract). What remains is the [Michael] checklist in
+> docs/launch/checklist.md — LICENSE name, orgs, live /audit run, Studio recording,
+> real benchmark numbers, pnpm publish, tag, posts.
+
 ## Wave 3 — proof and launch (Stage 4) — LAUNCHED 2026-08-11
 
 Pre-wave contract pass landed (`458216c`): read is slice-or-default (no depth),

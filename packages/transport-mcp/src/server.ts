@@ -19,7 +19,7 @@ const asToolResult = (r: Result<unknown, unknown>) => ({
  * object because its own boundary is `unknown` (tests and future transports call it directly).
  */
 export const createServer = (session: AgentConnection): McpServer => {
-  const server = new McpServer({ name: "whipple3", version: "0.0.0" });
+  const server = new McpServer({ name: "whipple3", version: "0.1.0" });
 
   server.registerTool(
     "blackboard_post",

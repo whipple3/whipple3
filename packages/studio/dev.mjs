@@ -16,7 +16,9 @@ import { createServer } from "vite";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const fixture = process.env.WHIPPLE3_FIXTURE === "1";
-const givenPath = process.argv[2] ?? process.env.WHIPPLE3_LOG;
+// pnpm forwards a literal "--" separator; never mistake it for the log path.
+const argPath = process.argv.slice(2).find((a) => a !== "--");
+const givenPath = argPath ?? process.env.WHIPPLE3_LOG;
 
 if (givenPath === undefined && !fixture) {
   console.error("usage: pnpm --filter @whipple3/studio dev -- <session.ndjson>");

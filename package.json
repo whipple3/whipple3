@@ -4,14 +4,14 @@
   "type": "module",
   "packageManager": "pnpm@11.0.9",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
-    "typecheck": "pnpm -r --filter './packages/*' exec tsc -p tsconfig.json --noEmit",
-    "build": "pnpm -r --filter './packages/*' run --if-present build",
-    "test": "vitest run",
+    "typecheck": "pnpm -r --filter './packages/*' --filter './tools/*' exec tsc -p tsconfig.json --noEmit",
+    "build": "pnpm -r --filter './packages/*' --filter './tools/*' run --if-present build",
+    "test": "vitest run && pnpm -C tools/bench test",
     "lint": "biome check .",
-    "depcruise": "depcruise packages --config .dependency-cruiser.cjs"
+    "depcruise": "depcruise packages tools --config .dependency-cruiser.cjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

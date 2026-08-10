@@ -27,7 +27,7 @@ one identity would not be protected from each other.
 
 ## Setup (under 10 minutes)
 
-**Prereqs:** Node ≥ 20, Claude Code with plugin support (verified against the plugin docs
+**Prereqs:** Node ≥ 22, Claude Code with plugin support (verified against the plugin docs
 at code.claude.com/docs, 2026-08).
 
 1. **Get the `whipple3` binary resolvable** (~2 min). Until the npm publish lands:
@@ -100,10 +100,12 @@ layers are different kinds of guarantees:
 
 Known limits, stated plainly: `bypassPermissions` sessions opt out of prompting entirely
 (the docs do not define hook-"ask" behavior there — do not run the demo that way);
-the hook fires on `agent_type`, which is set for subagents only; and the label-level
-write ACL (`scanner may post CodeFile and nothing else`) is prompt-discipline in v0.1 —
-`whipple3 serve` does not yet load an `AclPolicy` file, so the host tool allowlist is the
-enforcement layer that exists. Every layer above marked "host" was verified against the
+the hook fires on `agent_type`, which is set for subagents only. The label-level write
+ACL (`scanner may post CodeFile and nothing else`) is real when serve gets a policy:
+start the board with `whipple3 serve --policy policy.json` (`{ acl: { scanner: { write:
+["CodeFile"], read: [...] } } }`) and the engine enforces it — every denial lands in the
+log as `acl.denied` and shows up in the distill report. Without `--policy`, the host tool
+allowlist is the enforcement layer that exists. Every layer above marked "host" was verified against the
 current Claude Code docs; the protocol layer is instructions, and treated as such.
 
 ## Manual install (no plugin)

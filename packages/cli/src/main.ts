@@ -3,6 +3,7 @@ import { defineCommand, runMain } from "citty";
 import { distill } from "./distill.js";
 import { mcp } from "./mcp.js";
 import { serve } from "./serve.js";
+import { VERSION } from "./version.js";
 
 /** Registry only — one command per file. FROZEN mid-wave; commands own their own files. */
 const stub = (name: string) =>
@@ -16,7 +17,7 @@ const stub = (name: string) =>
 const main = defineCommand({
   meta: {
     name: "whipple3",
-    version: "0.0.0",
+    version: VERSION,
     description:
       "whipple3 — a typed, ephemeral, event-sourced blackboard for coordinating AI agents.",
   },

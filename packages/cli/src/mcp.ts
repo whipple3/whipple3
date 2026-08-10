@@ -6,6 +6,7 @@ import { createJsonlLog } from "@whipple3/log";
 import { createSession, liveSessionDeps, serveStdio, toolInputs } from "@whipple3/transport-mcp";
 import { connectBoard, type RemoteAgentConnection } from "@whipple3/transport-uds";
 import { defineCommand } from "citty";
+import { VERSION } from "./version.js";
 
 /** Mirrors transport-mcp's answer shape: a serialized Result, never prose. (SPEC §6) */
 const asToolResult = (r: Result<unknown, unknown>) => ({
@@ -31,7 +32,7 @@ const viaBoard = async (call: () => Promise<Result<unknown, unknown>>) => {
  * across a socket, so its handler awaits.
  */
 const serveStdioProxy = async (board: RemoteAgentConnection): Promise<void> => {
-  const server = new McpServer({ name: "whipple3", version: "0.0.0" });
+  const server = new McpServer({ name: "whipple3", version: VERSION });
   server.registerTool(
     "blackboard_post",
     {
