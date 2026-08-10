@@ -1,0 +1,22 @@
+{
+  "name": "@whipple3/bench",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Benchmark harness: whipple3 vs vanilla-subagents audit — the Stage 4 measurement instrument.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@whipple3/core": "workspace:*",
+    "@whipple3/log": "workspace:*",
+    "@whipple3/transport-mcp": "workspace:*",
+    "zod": "^4.0.0"
+  }
+}

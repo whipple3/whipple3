@@ -125,6 +125,21 @@ importers:
         specifier: workspace:*
         version: link:../log
 
+  tools/bench:
+    dependencies:
+      '@whipple3/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@whipple3/log':
+        specifier: workspace:*
+        version: link:../../packages/log
+      '@whipple3/transport-mcp':
+        specifier: workspace:*
+        version: link:../../packages/transport-mcp
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
+
 packages:
 
   '@biomejs/biome@2.5.7':
