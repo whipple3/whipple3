@@ -35,6 +35,19 @@ path, no exceptions.
 
 ---
 
+> **STATUS: Wave 1 CLOSED 2026-08-10.** All four packages merged to main, final gate
+> green (87 tests, build included). Bonus: W1-A's sweep surfaced a real race — post()'s
+> version echo read state after the append await — fixed on main (`6073803`) before
+> integration. Wave 2 additions pending Michael's ruling, from Wave 1 findings:
+> (a) `blackboard_release` tool — RELEASE_NODE exists in core but is unreachable over
+> MCP, so leases end only by TTL (→ W2-A or a new tool; W1-D finding);
+> (b) SPEC catch-up: §4.1 apply signature, §6 envelope (protocolVersion/traceparent),
+> §5 naming (`canMutate`→`checkAcl`, no claim.ts) — or code changes if the SPEC should
+> win, notably claim.* taxonomy events are never emitted (W1-D finding);
+> (c) log port follow/incremental-read for cross-process tailing — studio polls
+> full-file reads today, seam isolated in `packages/studio/src/tail.ts` (W1-C request);
+> (d) `graphology-layout-force` dep for poster-grade Studio layout (W1-C request).
+
 ## Wave 1 — no cross-dependencies, start all four today
 
 | Pkg | Mission | Owned paths |
