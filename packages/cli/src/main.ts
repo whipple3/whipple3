@@ -2,6 +2,7 @@
 import { defineCommand, runMain } from "citty";
 import { distill } from "./distill.js";
 import { mcp } from "./mcp.js";
+import { ping } from "./ping.js";
 import { serve } from "./serve.js";
 import { VERSION } from "./version.js";
 
@@ -25,6 +26,7 @@ const main = defineCommand({
     init: stub("init"),
     mcp,
     serve,
+    ping,
     distill,
     studio: stub("studio"),
     replay: stub("replay"),

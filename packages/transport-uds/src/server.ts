@@ -11,6 +11,7 @@ import {
   type ReqFrame,
   type ServerFrame,
 } from "./frames.js";
+import { assertUdsPath } from "./sunpath.js";
 
 export interface BoardServerOptions {
   /** The ONE session this board owns; every socket becomes one `session.connect`. */
@@ -115,7 +116,10 @@ const serveConnection = (session: Session, socket: Socket): void => {
 };
 
 export const startBoardServer = async (opts: BoardServerOptions): Promise<BoardServer> => {
-  await claimSocketPath(opts.socketPath);
+  // Bind the RESOLVED path, guarded: a deep path would bind fine relative and then
+  // hand every absolute-path client a truncated ENOTSOCK. (sunpath.ts)
+  const socketPath = assertUdsPath(opts.socketPath);
+  await claimSocketPath(socketPath);
   const sockets = new Set<Socket>();
   const server = createServer((socket) => {
     sockets.add(socket);
@@ -124,7 +128,7 @@ export const startBoardServer = async (opts: BoardServerOptions): Promise<BoardS
   });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(opts.socketPath, () => {
+    server.listen(socketPath, () => {
       server.off("error", reject);
       resolve();
     });
@@ -133,7 +137,7 @@ export const startBoardServer = async (opts: BoardServerOptions): Promise<BoardS
     close: async () => {
       for (const s of sockets) s.destroy();
       await new Promise<void>((resolve) => server.close(() => resolve()));
-      await unlink(opts.socketPath).catch(() => undefined); // already gone is fine
+      await unlink(socketPath).catch(() => undefined); // already gone is fine
     },
   };
 };

@@ -27,7 +27,7 @@ one identity would not be protected from each other.
 
 ## Setup (under 10 minutes)
 
-**Prereqs:** Node ≥ 22, Claude Code with plugin support (verified against the plugin docs
+**Prereqs:** Node ≥ 22, **Claude Code ≥ 2.1.140** — older hosts load plugin commands/agents but NOT the plugin's MCP servers, and `${CLAUDE_PROJECT_DIR}` expansion landed in 2.1.139 (verified against the plugin docs
 at code.claude.com/docs, 2026-08).
 
 1. **Get the `whipple3` binary resolvable** (~2 min). Until the npm publish lands:
@@ -116,3 +116,25 @@ current Claude Code docs; the protocol layer is instructions, and treated as suc
 One naming caveat: outside a plugin, tool names lose the `plugin_whipple3_` scope —
 change `mcp__plugin_whipple3_whipple3-scanner__…` to `mcp__whipple3-scanner__…` in each
 agent's `tools` line. The HITL hook only ships via the plugin.
+
+## Older-host fallback (`--mcp-config`)
+
+Hosts older than 2.1.140 load this plugin's commands and agents but silently skip its
+MCP servers. The demo still runs if you hand the five servers to the CLI yourself —
+absolute paths (no `${CLAUDE_PROJECT_DIR}`), and server names carrying the plugin scope
+so the agents' tool allowlists match:
+
+```json
+{ "mcpServers": { "plugin_whipple3_whipple3-scanner": {
+    "type": "stdio", "command": "whipple3",
+    "args": ["mcp", "--board", "/abs/path/to/project/.whipple3/board.sock",
+             "--agent", "scanner"] } } }
+```
+
+(repeat for `auditor-1/-2/-3` and `fixer`), then:
+
+```
+claude -p "/whipple3:audit" --plugin-dir /path/to/this/plugin --mcp-config mcp.json ...
+```
+
+Proven live 2026-08-11 against Claude Code 2.1.138.

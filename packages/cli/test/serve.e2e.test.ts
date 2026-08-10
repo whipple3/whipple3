@@ -156,6 +156,20 @@ describe("whipple3 serve — the board backend owns one session on one socket", 
     ]);
   });
 
+  it("ping proves a live board with a real connect; a dead path fails with an explanation", async () => {
+    if (!existsSync(bin)) throw new Error("dist/main.js missing — run `pnpm build` first");
+    const cwd = mkdtempSync(join(tmpdir(), "w3srv-"));
+
+    const dead = spawnCli(cwd, "ping");
+    expect(await exited(dead.child)).toBe(1);
+
+    const serve = spawnCli(cwd, "serve");
+    await waitFor(() => serve.stdout().includes("listening"), "serve to announce its socket");
+    const ping = spawnCli(cwd, "ping");
+    expect(await exited(ping.child)).toBe(0);
+    expect(ping.stdout()).toContain("board live");
+  });
+
   it("--policy makes checkAcl real over the wire; distill reports the denial", async () => {
     if (!existsSync(bin)) throw new Error("dist/main.js missing — run `pnpm build` first");
     const cwd = mkdtempSync(join(tmpdir(), "w3srv-"));

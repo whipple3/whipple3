@@ -9,6 +9,7 @@ import {
   type ServerFrame,
   serverFrame,
 } from "./frames.js";
+import { assertUdsPath, explainDialError } from "./sunpath.js";
 
 export interface ConnectBoardOptions {
   readonly socketPath: string;
@@ -39,7 +40,14 @@ interface Pending {
 /** Resolves once the board acks the hello; rejections are process-edge exceptions. */
 export const connectBoard = (opts: ConnectBoardOptions): Promise<RemoteAgentConnection> =>
   new Promise((resolveConnect, rejectConnect) => {
-    const socket = connect(opts.socketPath);
+    let abs: string;
+    try {
+      abs = assertUdsPath(opts.socketPath);
+    } catch (e) {
+      rejectConnect(e instanceof Error ? e : new Error(String(e)));
+      return;
+    }
+    const socket = connect(abs);
     const pending = new Map<number, Pending>();
     let ready = false;
     let nextId = 0;
@@ -85,7 +93,7 @@ export const connectBoard = (opts: ConnectBoardOptions): Promise<RemoteAgentConn
         onFrame(parsed.data);
       }
     });
-    socket.on("error", (e) => failAll(`board connection error: ${e.message}`));
+    socket.on("error", (e) => failAll(explainDialError(abs, e as NodeJS.ErrnoException)));
     socket.on("close", () => failAll("board connection closed"));
     socket.once("connect", () =>
       socket.write(encodeFrame({ kind: "hello", v: PROTOCOL_VERSION, agentId: opts.agentId })),

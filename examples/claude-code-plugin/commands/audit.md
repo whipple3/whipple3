@@ -1,7 +1,7 @@
 ---
 description: Run the whipple3 blackboard audit — scanner seeds CodeFiles, three auditors work claims in parallel, the fixer proposes and (after human approval) applies fixes, distill writes the report.
 argument-hint: [optional focus, e.g. "src/ only"]
-allowed-tools: Bash(ls:*)
+allowed-tools: Bash(npx whipple3 ping:*), Bash(ls:*)
 ---
 
 Run a security audit of this repository over the whipple3 shared blackboard.
@@ -9,14 +9,16 @@ Focus, if given: $ARGUMENTS
 
 ## Step 0 — preflight
 
-Board socket (a `whipple3 serve` process must already own it — it starts BEFORE the
-Claude Code session, see the plugin README):
+Board liveness (a `whipple3 serve` process must already own the socket — it starts
+BEFORE the Claude Code session, see the plugin README). This is a real connect + status
+round-trip, not a file check — a socket FILE only proves a listener existed once:
 
-!`ls .whipple3/board.sock`
+!`npx whipple3 ping`
 
-If the line above shows the socket path, continue. If it shows an error instead, STOP and
-tell the user: run `npx whipple3 serve` in a separate terminal, then restart this Claude
-Code session (the per-agent MCP proxies dial the socket once, at session start — stdio
+If the line above says "board live", continue. If it shows a failure, STOP and relay its
+explanation to the user (it distinguishes no-serve, stale socket, and path problems),
+then: run `npx whipple3 serve` in a separate terminal and restart this Claude Code
+session (the per-agent MCP proxies dial the socket once, at session start — stdio
 servers are not reconnected automatically). Do not attempt to start serve yourself; the
 proxies for this session are already dead.
 
