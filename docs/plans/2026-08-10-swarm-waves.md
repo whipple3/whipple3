@@ -155,6 +155,24 @@ Pre-wave contract pass landed (`458216c`): read is slice-or-default (no depth),
 The live Claude Code `/whipple3:audit` run and the real benchmark numbers remain
 Michael-side — the wave delivers the instruments and the kit, not the launch itself.
 
+> **LIVE VALIDATION RUN — 2026-08-11, PASSED.** Headless `claude -p "/whipple3:audit"`
+> against a real board (`serve --policy`), five real MCP proxies, real models:
+> 66 log records, 6 CodeFiles scanned, 3 auditors in true parallel — **zero duplicate
+> claims, zero lost updates, zero denials**, full claim→issue→update→release chains,
+> 6 SecurityIssues found (exactly the seeded set + severity triage), 6 Fix nodes
+> proposed, session halted AT the HITL question as designed. distill report generated.
+> Stage 1 + Stage 2 done-criteria: **met on a real host.**
+> Findings for the next contract pass, discovered by the run itself:
+> 1. `serve`/`connectBoard` must guard the UDS `sun_path` limit (104B macOS / 108B
+>    Linux): a too-long socket path today yields a healthy-looking "listening" and
+>    ENOTSOCK for every absolute-path client.
+> 2. `/audit` preflight must `connect()`, not stat: a socket FILE proves a listener
+>    existed, not that one exists.
+> 3. Claude Code 2.1.138 loads plugin commands/agents but NOT the plugin's .mcp.json —
+>    the demo ran via an equivalent `--mcp-config` with plugin-scoped server names.
+>    Pin the plugin's real minimum host version once identified; document the
+>    --mcp-config fallback in the plugin README.
+
 ---
 
 ## Decisions — RULED by Michael, 2026-08-10
