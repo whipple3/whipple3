@@ -15,6 +15,8 @@
   "dependencies": {
     "@arai/core": "workspace:*",
     "@arai/log": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "ulid": "^3.0.2",
     "zod": "^4.0.0"
   },
   "publishConfig": {
