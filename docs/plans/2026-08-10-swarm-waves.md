@@ -197,6 +197,19 @@ Michael-side — the wave delivers the instruments and the kit, not the launch i
   only; SPEC already scopes graphology to studio). Rule 6 says every dependency is a
   decision — approve before install.
 
+> **STATUS: Wave 4 CLOSED 2026-08-11.** Contract pass: sun_path guard both ends,
+> `whipple3 ping` (seventh command) as the /audit preflight, host pin ≥ 2.1.140 with the
+> --mcp-config fallback documented; plus Michael's parallel hardening (closed name
+> alphabet, props byte budget, ttl cap; IDENTITY_IN_USE — one identity, one live
+> connection; session.ts split at the connection seam; tail stall reporting).
+> Packages: W4-A FA2 gravity + testable flash (seen rendering for the first time) +
+> zero dangling sourcemaps; W4-B honest host table (Claude Code ✅, codex/cursor 🔒
+> with pre-auth MCP evidence, gemini 🔒, opencode 📋) + the codex additionalProperties
+> finding (queued); W4-C parser proven on REAL run data, per-agentType sidecar
+> attribution, `bench extract`, whipple3-side N=1 banked (orchestrator 296,769 ctx
+> tokens; board metrics matched predeclared exactly). Final gate 218+42 green.
+> Open: cursor login → ✅ row; vanilla bench runs; the Michael launch checklist.
+
 ## Wave 4 — QUEUED (next session starts here)
 
 Pre-wave contract pass first, as always. The queue, by priority:
