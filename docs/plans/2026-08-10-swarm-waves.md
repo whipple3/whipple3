@@ -132,13 +132,19 @@ launches only after W2-B lands at the integration pass.
 
 ---
 
-## Wave 3 — proof and launch (Stage 4)
+## Wave 3 — proof and launch (Stage 4) — LAUNCHED 2026-08-11
 
-- **W3-A** Benchmark harness (`tools/bench/**`): whipple3 vs. vanilla subagents; publish
-  honest numbers. Needs W2-E.
-- **W3-B** Packaging: npm publishConfig sanity, plugin version pinning, quickstart README.
-- **W3-C** Launch checklist: LICENSE full name, GitHub org, npm org, v0.1.0 tag, post.
-  (Open items live in Michael's memory + ROADMAP Stage 4.)
+Pre-wave contract pass landed (`458216c`): read is slice-or-default (no depth),
+`status()` async, `serve --policy {acl, slices}` real and e2e-proven, distill in the e2e.
+
+| Pkg | Mission | Owned paths | Constraint |
+|---|---|---|---|
+| **W3-A** | Benchmark harness: whipple3 vs vanilla-subagents audit — transcript-parsing metrics (orchestrator tokens, wall time, duplicate work), deterministic mock mode proving the pipeline, runbook for the live LLM comparison | `tools/bench/**` | no new deps |
+| **W3-B** | Packaging: publishConfig/files/bin sanity via real `npm pack` tarball smoke test, plugin version pinning, root README 10-minute quickstart | `packages/*/package.json`, `README.md`, `examples/claude-code-plugin/.claude-plugin/plugin.json` | no publish — npm org is Michael's |
+| **W3-C** | Launch kit: CHANGELOG for v0.1.0, launch post draft(s), release checklist incl. Michael-side items (LICENSE name, GitHub/npm org, tag), CONTRIBUTING/DCO pass | `CHANGELOG.md`, `docs/launch/**`, `CONTRIBUTING.md` | drafts, not sends |
+
+The live Claude Code `/whipple3:audit` run and the real benchmark numbers remain
+Michael-side — the wave delivers the instruments and the kit, not the launch itself.
 
 ---
 
