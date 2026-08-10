@@ -18,6 +18,7 @@
         top: 0;
         left: 0;
         right: 0;
+        height: 20px;
         z-index: 2;
         padding: 6px 12px;
         background: rgba(14, 17, 22, 0.85);
@@ -28,13 +29,85 @@
       }
       #graph {
         position: absolute;
-        inset: 0;
+        top: 33px;
+        left: 0;
+        right: 320px;
+        bottom: 44px;
+      }
+      #panel {
+        position: fixed;
+        top: 33px;
+        right: 0;
+        bottom: 44px;
+        width: 296px;
+        padding: 10px 12px;
+        overflow-y: auto;
+        background: #11151c;
+        border-left: 1px solid #232a35;
+      }
+      #panel h2 {
+        margin: 0 0 6px;
+        font-size: 14px;
+      }
+      #panel h3 {
+        margin: 12px 0 4px;
+        font-size: 12px;
+        color: #9daabb;
+      }
+      #panel p {
+        margin: 2px 0;
+      }
+      #panel .muted {
+        color: #6b7787;
+      }
+      #panel .held {
+        color: #ffb020;
+      }
+      #panel .entry-denied {
+        color: #ff5c5c;
+      }
+      #controls {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 32px;
+        z-index: 2;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 6px 12px;
+        background: rgba(14, 17, 22, 0.92);
+        border-top: 1px solid #232a35;
+      }
+      #scrub {
+        flex: 1;
+        accent-color: #4e9af1;
+      }
+      #live {
+        font: inherit;
+        color: #0e1116;
+        background: #2bd97c;
+        border: 0;
+        border-radius: 3px;
+        padding: 4px 12px;
+        cursor: pointer;
+      }
+      #live:disabled {
+        background: #232a35;
+        color: #6b7787;
+        cursor: default;
       }
     </style>
   </head>
   <body>
     <div id="graph"></div>
     <div id="status">whipple3 studio — waiting for records…</div>
+    <aside id="panel"></aside>
+    <div id="controls">
+      <input id="scrub" type="range" min="0" max="0" value="0" step="1" />
+      <button id="live" type="button" disabled>live</button>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

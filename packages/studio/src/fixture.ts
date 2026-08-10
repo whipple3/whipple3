@@ -4,9 +4,10 @@ import { createSession } from "@whipple3/transport-mcp";
 
 /**
  * Dev fixture: drives a real createSession against a jsonl log so the studio
- * tail sees exactly what a `whipple3 mcp` run would write. Timed so nodes,
- * edges and update flashes appear live while you watch. Demo-only code path
- * (dev:fixture), never part of the served page.
+ * tail sees exactly what a `whipple3 mcp` run would write. The script IS the
+ * demo (test/fixture.test.ts pins it): claims acquired and released, a hot
+ * node updated three times, one claim left held on purpose — the persistent
+ * tint the UI explains honestly. `stepMs` paces it for watching; tests pass 0.
  */
 
 const FILES = [
@@ -16,6 +17,8 @@ const FILES = [
   "src/db.ts",
   "src/ui.ts",
   "src/queue.ts",
+  "src/webhooks.ts",
+  "src/jobs.ts",
 ] as const;
 
 const FINDINGS = [
@@ -24,11 +27,10 @@ const FINDINGS = [
   { file: 2, severity: "low", title: "missing rate limit" },
   { file: 3, severity: "high", title: "sql string concat" },
   { file: 4, severity: "low", title: "dangerouslySetInnerHTML" },
+  { file: 5, severity: "medium", title: "unbounded queue growth" },
 ] as const;
 
-const STEP_MS = 700;
-
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+const CLAIM_TTL_MS = 30_000;
 
 /** Process edge: a rejected fixture step is a bug, so throwing is the right failure mode. */
 const must = <T, E>(result: Result<T, E>): T => {
@@ -36,7 +38,9 @@ const must = <T, E>(result: Result<T, E>): T => {
   return result.value;
 };
 
-export const runFixture = async (logPath: string): Promise<void> => {
+export const runFixture = async (logPath: string, stepMs = 700): Promise<void> => {
+  const sleep = (): Promise<void> =>
+    stepMs === 0 ? Promise.resolve() : new Promise((resolve) => setTimeout(resolve, stepMs));
   let counter = 0;
   const newTxId = (): TxId => {
     counter += 1;
@@ -52,6 +56,7 @@ export const runFixture = async (logPath: string): Promise<void> => {
   });
   const scanner = session.connect(agentId("scanner"));
   const auditors = [session.connect(agentId("auditor-1")), session.connect(agentId("auditor-2"))];
+  const fixer = session.connect(agentId("fixer"));
 
   console.log("[fixture] scanner posting files…");
   for (const [i, path] of FILES.entries()) {
@@ -60,15 +65,15 @@ export const runFixture = async (logPath: string): Promise<void> => {
         mutation: { kind: "ADD_NODE", id: `file-${i}`, label: "file", props: { path } },
       }),
     );
-    await sleep(STEP_MS);
+    await sleep();
   }
 
-  console.log("[fixture] auditors claiming, posting findings, updating files…");
+  console.log("[fixture] auditors: claim → finding → update → release…");
   for (const [i, finding] of FINDINGS.entries()) {
     const auditor = auditors[i % auditors.length];
     if (auditor === undefined) continue;
-    must(await auditor.claim({ id: `file-${finding.file}`, ttlMs: 30_000 }));
-    await sleep(STEP_MS);
+    must(await auditor.claim({ id: `file-${finding.file}`, ttlMs: CLAIM_TTL_MS }));
+    await sleep();
     must(
       await auditor.post({
         mutation: {
@@ -90,7 +95,7 @@ export const runFixture = async (logPath: string): Promise<void> => {
         },
       }),
     );
-    await sleep(STEP_MS);
+    await sleep();
     must(
       await auditor.post({
         mutation: {
@@ -101,8 +106,35 @@ export const runFixture = async (logPath: string): Promise<void> => {
         },
       }),
     );
-    await sleep(STEP_MS);
+    must(await auditor.release({ id: `file-${finding.file}` }));
+    await sleep();
   }
+
+  console.log("[fixture] fixer working the hot node (claim stays held)…");
+  must(await fixer.claim({ id: "file-0", ttlMs: CLAIM_TTL_MS }));
+  await sleep();
+  must(
+    await fixer.post({
+      mutation: {
+        kind: "UPDATE_NODE",
+        id: "file-0",
+        expectedVersion: 2,
+        props: { status: "fix-queued" },
+      },
+    }),
+  );
+  await sleep();
+  must(
+    await fixer.post({
+      mutation: {
+        kind: "UPDATE_NODE",
+        id: "file-0",
+        expectedVersion: 3,
+        props: { status: "fix-applied" },
+      },
+    }),
+  );
+  // deliberately no release: the demo ends with fixer's tint still on file-0
 
   console.log("[fixture] done — %d records written to %s", counter, logPath);
 };

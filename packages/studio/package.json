@@ -14,6 +14,7 @@
     "@whipple3/log": "workspace:*",
     "@whipple3/transport-mcp": "workspace:*",
     "graphology": "^0.26.0",
+    "graphology-layout-forceatlas2": "^0.10.1",
     "sigma": "^3.0.3"
   },
   "devDependencies": {
