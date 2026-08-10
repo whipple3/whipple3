@@ -1,60 +1,92 @@
 import type { LogRecord } from "@whipple3/core";
 import Graph from "graphology";
 import Sigma from "sigma";
-import { type GraphOp, recordToOps } from "./graph-ops.js";
+import { nodeHistory } from "./history.js";
+import { assignLayout } from "./layout.js";
+import { emptyModel, foldRecord, modelAt, type StudioModel } from "./model.js";
+import { renderPanel } from "./panel.js";
+import { syncGraph } from "./render.js";
 
-const NODE_SIZE = 8;
-const FLASH_SIZE = 13;
-const FLASH_MS = 700;
-const EDGE_COLOR = "#5a6b80";
+const FLASH_SIZE = 15;
+const FLASH_MS = 600;
 
-const container = document.getElementById("graph");
-const statusEl = document.getElementById("status");
-if (container === null || statusEl === null) throw new Error("studio: #graph or #status missing");
+const byId = (id: string): HTMLElement => {
+  const found = document.getElementById(id);
+  if (found === null) throw new Error(`studio: #${id} missing`);
+  return found;
+};
+const container = byId("graph");
+const statusEl = byId("status");
+const panelEl = byId("panel");
+// byId returns HTMLElement; index.html declares these exact controls
+const scrubEl = byId("scrub") as HTMLInputElement;
+const liveBtn = byId("live") as HTMLButtonElement;
 
 const graph = new Graph();
-new Sigma(graph, container);
+const sigma = new Sigma(graph, container);
 
-const applyOp = (op: GraphOp): void => {
-  switch (op.kind) {
-    case "add-node": {
-      if (graph.hasNode(op.id)) return;
-      graph.addNode(op.id, {
-        x: op.x,
-        y: op.y,
-        size: NODE_SIZE,
-        color: op.color,
-        label: `${op.id} · ${op.label}`,
-      });
-      return;
-    }
-    case "add-edge": {
-      if (graph.hasEdge(op.id) || !graph.hasNode(op.from) || !graph.hasNode(op.to)) return;
-      graph.addEdgeWithKey(op.id, op.from, op.to, { label: op.label, size: 2, color: EDGE_COLOR });
-      return;
-    }
-    case "touch-node": {
-      // UPDATE_NODE hint: brief halo + size bump, then back to rest.
-      if (!graph.hasNode(op.id)) return;
-      graph.mergeNodeAttributes(op.id, { highlighted: true, size: FLASH_SIZE });
-      window.setTimeout(() => {
-        if (!graph.hasNode(op.id)) return;
-        graph.mergeNodeAttributes(op.id, { highlighted: false, size: NODE_SIZE });
-      }, FLASH_MS);
-      return;
-    }
-  }
-};
-
-let nextSeq = 0;
-let records = 0;
+const records: LogRecord[] = [];
+let model: StudioModel = emptyModel();
+let mode: "live" | "paused" = "live";
+let position = -1; // index of the last record folded into `model`
+let selected: string | null = null;
 let session = "?";
 
 const renderStatus = (): void => {
+  const where = mode === "live" ? "LIVE" : `PAUSED @ ${position + 1}/${records.length}`;
   statusEl.textContent =
-    `whipple3 studio — session ${session} · ${records} records · ` +
-    `${graph.order} nodes · ${graph.size} edges`;
+    `whipple3 studio — session ${session} · ${records.length} records · ` +
+    `${graph.order} nodes · ${graph.size} edges · ${where}`;
 };
+
+const refresh = (): void => {
+  syncGraph(graph, model);
+  assignLayout(graph);
+  renderPanel(
+    panelEl,
+    model,
+    selected,
+    selected === null ? [] : nodeHistory(records, selected, position),
+  );
+  scrubEl.max = String(Math.max(records.length - 1, 0));
+  if (mode === "live") scrubEl.value = String(position);
+  liveBtn.disabled = mode === "live";
+  liveBtn.textContent = mode === "live" ? "live" : "go live";
+  renderStatus();
+};
+
+/** UPDATE_NODE pulse: cosmetic; the next syncGraph restores the model-derived size. */
+const flashOnUpdate = (record: LogRecord): void => {
+  if (record.event.type !== "graph.mutation" || record.event.mutation.kind !== "UPDATE_NODE")
+    return;
+  const id = record.event.mutation.id;
+  if (!graph.hasNode(id)) return;
+  graph.setNodeAttribute(id, "size", FLASH_SIZE);
+  window.setTimeout(() => syncGraph(graph, model), FLASH_MS);
+};
+
+sigma.on("clickNode", ({ node }) => {
+  selected = node;
+  refresh();
+});
+sigma.on("clickStage", () => {
+  selected = null;
+  refresh();
+});
+
+scrubEl.addEventListener("input", () => {
+  mode = "paused";
+  position = Number(scrubEl.value);
+  model = modelAt(records, position);
+  refresh();
+});
+
+liveBtn.addEventListener("click", () => {
+  mode = "live";
+  position = records.length - 1;
+  model = modelAt(records, position);
+  refresh();
+});
 
 const source = new EventSource("/events");
 source.addEventListener("record", (evt: Event) => {
@@ -64,12 +96,17 @@ source.addEventListener("record", (evt: Event) => {
   // Trusted boundary: our own same-origin server emits records it read from the
   // session log; zod is not an approved studio dependency, so no runtime parse.
   const record = JSON.parse(data) as LogRecord;
-  if (record.seq < nextSeq) return; // EventSource reconnects replay from seq 0
-  nextSeq = record.seq + 1;
-  records += 1;
+  if (record.seq < records.length) return; // EventSource reconnects replay from seq 0
+  records.push(record);
   session = record.meta.sessionId;
-  for (const op of recordToOps(record)) applyOp(op);
-  renderStatus();
+  if (mode === "live") {
+    model = foldRecord(model, record);
+    position = records.length - 1;
+    refresh();
+    flashOnUpdate(record);
+  } else {
+    refresh(); // grows the scrubber range; the paused snapshot stays put
+  }
 });
 source.onerror = () => {
   statusEl.textContent = "whipple3 studio — stream disconnected, retrying…";
