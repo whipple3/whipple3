@@ -90,7 +90,7 @@ auth allows; no logins attempted) · 📋 documented from official docs, not run
 |---|---|---|---|
 | [Claude Code](./docs/hosts/claude-code.md) ≥ 2.1.138 | ✅ ran | 2026-08-11 | Five-agent `/audit` demo e2e: 3 parallel auditors, zero duplicate claims, zero lost updates. Plugin `.mcp.json` needs ≥ 2.1.140; `--mcp-config` fallback below that. |
 | [OpenAI Codex CLI](./docs/hosts/codex.md) 0.42.0 | 🔒 installed, unauthenticated | 2026-08-11 | MCP handshake + tool load verified via per-invocation `-c mcp_servers.*` overrides; model turn blocked (token refresh 401). Known issue: codex 0.42.0 drops `blackboard_next` at schema conversion (`additionalProperties: {}`). |
-| [Cursor CLI](./docs/hosts/cursor.md) 2026.04.17 | 🔒 installed, unauthenticated | 2026-08-11 | `.cursor/mcp.json` wiring verified: `cursor-agent mcp list-tools whipple3` returned all six tools over a live board. Agent turn needs `cursor-agent login`. |
+| [Cursor CLI](./docs/hosts/cursor.md) 2026.04.17 | ✅ ran | 2026-08-11 | Full model turn over MCP against a live board: status → post → status, the mutation attributed to `cursor` in the board log. Stale-proxy identity lockout + approval findings in the host doc. |
 | [Gemini CLI](./docs/hosts/gemini-cli.md) 0.41.2 | 🔒 installed, unauthenticated | 2026-08-11 | Project `.gemini/settings.json` wiring per current docs; headless run stopped at auth (`IneligibleTierError` — no supported credential on the machine). |
 | [opencode](./docs/hosts/opencode.md) | 📋 documented, not run | 2026-08-11 | `opencode.json` `"mcp"` wiring from official docs (`type: "local"`, single command array). CLI not installed on the verification machine. |
 

@@ -244,6 +244,11 @@ Stage 8 ecosystem · Stage 9 commercial optionality — none enter MIT beyond th
 
 *(append here during a wave; applied only at the wave boundary)*
 
+- **From the Cursor ✅ validation (2026-08-11):** the mcp proxy should print its
+  refusal reason (e.g. IDENTITY_IN_USE) to stderr before exiting — hosts surface a dead
+  stdio server only as "Connection closed", which buried the real cause; also consider
+  logging connection refusals as observational events. Repro context in
+  docs/hosts/cursor.md.
 - **From W4-B (2026-08-11), interop:** codex CLI 0.42.0 drops `blackboard_next` at
   MCP→OpenAI schema conversion — `match`'s `z.record(z.string(), z.unknown())` emits
   `"additionalProperties": {}` (object form) and codex accepts only the boolean form
