@@ -18,7 +18,7 @@ The skeleton, green end to end.
   `Result`. One runtime dep: Zod.
 - `@whipple3/log`: `LogStore` / `ReadonlyLog` ports, memory + NDJSON adapters, shared
   conformance suite running against both.
-- `@whipple3/transport-mcp`: Zod schemas for the five blackboard tools.
+- `@whipple3/transport-mcp`: Zod schemas for the blackboard tools.
 - `whipple3` CLI shell; Claude Code plugin example (scanner / auditor / fixer + `/audit`).
 - CI gates: strict tsc, Biome, dependency-cruiser (core purity + import direction),
   Vitest + fast-check invariants.
@@ -47,12 +47,13 @@ The moment it stops being documents.
 2. ✅ **`session.ts` (imperative shell):** owns `GraphState`, a `LogStore`, an `AclPolicy`;
    injects time and ULID `txId`s; assembles `EventMeta` (causation/correlation/principal).
    Pipeline: parse (Zod) → `checkAcl` → `apply` → `append` → Result-shaped payload.
-3. ✅ **`server.ts`:** stdio MCP server registering the five tools. Structured errors, never prose.
+3. ✅ **`server.ts`:** stdio MCP server registering the tools. Structured errors, never prose.
+   (Five at the time; `blackboard_release` landed in the Wave-2 contract pass — six total.)
 4. ✅ **`blackboard_next`:** pull-mode query — nodes matching label + props, excluding
    nodes under a valid claim (and now: only for labels the agent may read).
 5. ✅ **CLI:** `whipple3 mcp --agent <id>` starts the server against
    `.whipple3/session-<ts>.ndjson`.
-6. ✅ **Integration tests** at the session layer: drive all five handlers, assert log contents
+6. ✅ **Integration tests** at the session layer: drive all the handlers, assert log contents
    *and* resulting state. 43 tests green.
 
 **Done means:** a Claude Code subagent posts a node, a second one claims it, and the JSONL

@@ -205,11 +205,11 @@ This single decision is what makes observability and evals adapters later instea
 
 ### 9.4 CI gates
 
-`tsc` strict · Biome · dependency-cruiser (import direction) · knip (dead exports) · Vitest + **fast-check property tests on core invariants** (replay is deterministic; version conflicts always rejected; a claim is never double-held; `apply` never drops events) · port conformance suites · demo scenario as integration test. GitHub Actions matrix: Node 20/22 + Bun smoke test.
+`tsc` strict · Biome · dependency-cruiser (import direction) · Vitest + **fast-check property tests on core invariants** (replay is deterministic; version conflicts always rejected; a claim is never double-held; `apply` never drops events) · port conformance suites · demo scenario as integration test. GitHub Actions: Node 22. Planned, not yet wired: knip (dead exports), a Bun smoke job.
 
 ## 10. Toolchain
 
-TypeScript strict, **ESM-only, Node ≥ 20** (Deno/Bun consume npm; publishing for Node reaches both). pnpm workspaces + changesets · tsup · Vitest + fast-check · Biome · citty (CLI) · Vite + vanilla TS + sigma.js (Studio v0 — no UI framework; revisit for Studio v2 based on contributors, likely React) · `@modelcontextprotocol/sdk` · JSONL log now, SQLite adapter next (prefer built-in `node:sqlite`; `better-sqlite3` fallback).
+TypeScript strict, **ESM-only, Node ≥ 22** (matches every package's `engines`; Deno/Bun consume npm, so publishing for Node reaches both). pnpm workspaces + changesets · tsup · Vitest + fast-check · Biome · citty (CLI) · Vite + vanilla TS + sigma.js (Studio v0 — no UI framework; revisit for Studio v2 based on contributors, likely React) · `@modelcontextprotocol/sdk` · JSONL log now, SQLite adapter next (prefer built-in `node:sqlite`; `better-sqlite3` fallback).
 
 ## 11. Observability & evals — designed for now, built later
 
@@ -240,6 +240,9 @@ TypeScript strict, **ESM-only, Node ≥ 20** (Deno/Bun consume npm; publishing f
 | 004 | graphology demoted to Studio; core state is our own immutable structure (purity) |
 | 005 | MCP-first agent surface; UDS deferred to Phase 2 |
 | 006 | KùzuDB rejected: upstream archived Oct 2025 (bus-factor lesson → core deps minimized) |
+| 007 | Identity binds at `session.connect`, never in a tool payload; `principal` in `EventMeta` |
+| 008 | Two-sided ACL: reads filtered during traversal; every denial logged as `acl.denied` |
+| 009 | Board lifetime is a session parameter; purge is explicit and never core's business |
 
 ## 14. Risks
 

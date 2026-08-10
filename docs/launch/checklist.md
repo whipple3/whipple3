@@ -9,11 +9,12 @@ still reviews the diff/output).
 - [ ] **[automatable]** Wave 3 integration pass merged (W3-A bench, W3-B packaging,
       W3-C launch kit); full gate green from a clean clone:
       `pnpm typecheck && pnpm lint && pnpm depcruise && pnpm test && pnpm build`.
-- [ ] **[automatable]** Stale-doc sweep: root README still says **five** tools
-      (`blackboard_release` is missing) — W3-B's path; and
-      `examples/claude-code-plugin/README.md` still says serve "does not yet load an
-      AclPolicy file" — stale since `serve --policy` landed (`458216c`). Both fixed
-      before anything is public.
+- [x] **[automatable]** Stale-doc sweep (done 2026-08-11): the two items originally
+      listed here (root README tool count, plugin README `--policy`) turned out fixed
+      already; the review sweep caught the real stragglers — ARCHITECTURE.md tool count
+      (five → six), SPEC §13 ADR index (007–009 added), SPEC §9.4/§10 CI and Node
+      claims aligned with reality (Node 22 only, knip/Bun marked planned), ROADMAP
+      made count-free.
 
 ## 1. Legal & admin
 

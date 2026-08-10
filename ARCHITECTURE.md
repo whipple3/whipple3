@@ -5,7 +5,7 @@ The canonical design document is [SPEC.md](./SPEC.md); decisions live in
 
 ```
      agents (Claude Code subagents, any MCP host)
-            │  five MCP tools over stdio: post / read / claim / next / status
+            │  six MCP tools over stdio: post / read / claim / release / next / status
             │  (no payload carries an agentId — ADR-007)
             ▼
   @whipple3/transport-mcp                ← shell: one process per agent
