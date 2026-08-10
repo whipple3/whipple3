@@ -109,4 +109,35 @@ describe("startTail", () => {
     await vi.waitFor(() => expect(tail.records()).toHaveLength(1));
     expect(calls).toBeGreaterThan(1);
   });
+
+  it("reports a stall once per episode when every read fails, and re-arms on recovery", async () => {
+    // A torn FINAL line heals on the next poll; a poisoned line MID-file fails every
+    // read forever — without a stall signal the tail starves in silence.
+    let failing = true;
+    let calls = 0;
+    const poisoned: ReadonlyLog = {
+      read: (fromSeq = 0) => {
+        calls += 1;
+        if (failing) return Promise.reject(new Error("poisoned line"));
+        return Promise.resolve(
+          [{ seq: 0, meta: testMeta(0), event: addNodeEvent(0) }].slice(fromSeq),
+        );
+      },
+      subscribe: () => () => {},
+    };
+    const stalls: unknown[] = [];
+    const tail = tracked(startTail(poisoned, 5, (error) => stalls.push(error)));
+
+    await vi.waitFor(() => expect(stalls).toHaveLength(1)); // fires after a few failures…
+    const callsAtStall = calls;
+    await vi.waitFor(() => expect(calls).toBeGreaterThan(callsAtStall + 3));
+    expect(stalls).toHaveLength(1); // …but only once while the episode lasts
+
+    failing = false;
+    // A RECORD arriving is the proof a successful poll ran and re-armed the fuse —
+    // waiting on call counts races the episode above.
+    await vi.waitFor(() => expect(tail.records()).toHaveLength(1));
+    failing = true;
+    await vi.waitFor(() => expect(stalls).toHaveLength(2)); // a new episode fires again
+  });
 });

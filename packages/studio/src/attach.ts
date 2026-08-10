@@ -8,4 +8,9 @@ import { startTail } from "./tail.js";
  * Studio only ever reads the log — the jsonl adapter is used as a ReadonlyLog.
  */
 export const createEventsHandler = (logPath: string) =>
-  sseHandler(startTail(createJsonlLog(logPath)));
+  sseHandler(
+    startTail(createJsonlLog(logPath), 250, (error) => {
+      // Server-side voice of the stall: lands in the terminal running `studio dev`.
+      console.error(`whipple3 studio: log tail stalled on ${logPath} —`, error);
+    }),
+  );
