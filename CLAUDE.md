@@ -6,34 +6,23 @@ whipple3: a typed, ephemeral, event-sourced blackboard for coordinating AI agent
 SPEC.md is the canonical contract — read it before any non-trivial change.
 ARCHITECTURE.md is the 60-second map. This file is your working brief.
 
-## Current focus: W1 (vertical slice, week 1)
+## Current focus: Stage 2, executed in parallel waves
 
-Goal: a Claude Code subagent can post / claim / read against a running `whipple3 mcp` server.
+Stage 1 is code-complete (see ROADMAP.md): identity binds at `session.connect(agentId)` —
+no tool payload ever carries an `agentId`; `EventMeta` carries `principal`
+(`WHIPPLE3_PRINCIPAL` → OS user); ACL enforces BOTH directions and logs every denial as
+an `acl.denied` event; board lifetime is a parameter (`BoardLifetime`, SPEC §4.8) —
+nothing may hardcode "session end ⇒ purge", and purge is never core's business.
 
-1. `packages/transport-mcp/src/session.ts` — the imperative shell. Owns the current
-   `GraphState`, a `LogStore`, and an `AclPolicy`. Injects time and ULID txIds; assembles
-   `EventMeta` (causationId / correlationId / principal). Pipeline per mutation:
-   parse (Zod, from tools.ts) → `checkAcl` → `apply` → `append` → Result-shaped payload.
-   Core stays untouched and pure.
-   Identity is bound at `session.connect(agentId)` — one connection, one agent. No tool
-   payload carries an `agentId`, ever; a payload-asserted identity is the spoofing hole
-   this design closes. `principal` (on whose behalf the session runs) is injected via
-   `SessionDeps`: local env in OSS (`WHIPPLE3_PRINCIPAL` overrides the OS user), SSO later.
-2. `packages/transport-mcp/src/server.ts` — stdio MCP server via
-   `@modelcontextprotocol/sdk`, registering the five tools from `tools.ts`.
-   Verify the SDK's current API from its own docs/types — do not code it from memory.
-   Tool errors return structured data (mirroring `Result`), never prose.
-3. `blackboard_next` — pull-mode query: nodes of the given label matching `match` props,
-   excluding nodes with a valid (unexpired) claim. If the query is pure, it belongs in
-   core (`slice.ts` or a sibling); anything needing a clock stays in session.
-4. `packages/cli` — wire `whipple3 mcp --agent <id>` to start the server with a JSONL log
-   under `.whipple3/session-<timestamp>.ndjson`. The flag names the connection's agent
-   (default `main` — the host's own multiplexed connection).
-5. Tests — integration tests at the session layer (drive the five handlers, assert both
-   log contents and resulting state). Keep the property tests and conformance suites green.
+Work now runs as parallel sessions on disjoint packages. Before writing code:
 
-Out of scope for W1 — do not start: studio, push scheduler, XState, UDS transport,
-OTel, sandboxes, DSL literal-inference polish. (SPEC §12.)
+1. Read ROADMAP.md, then find your package in `docs/plans/2026-08-10-swarm-waves.md`.
+2. Work ONLY inside your package's owned paths, in its own worktree/branch.
+3. Frozen mid-wave (design around them; request changes in the wave doc):
+   core's export surface, `tools.ts` schemas, the event taxonomy, the log port,
+   the `AclPolicy` shape, `AgentConnection`, `BoardLifetime`.
+
+Out of scope until the wave doc says otherwise: push scheduler, XState, OTel, sandboxes.
 
 ## Non-negotiable rules (SPEC §9 — CI enforces most of them)
 
@@ -75,6 +64,6 @@ packages/core           pure reducer, ids, events, acl, claims, slices  (test/ =
 packages/log            LogStore port + memory/jsonl + conformance/
 packages/transport-mcp  tools.ts (Zod schemas) · server.ts + session.ts (W1)
 packages/cli            whipple3 bin: init | mcp | studio | replay
-packages/studio         W2 — do not touch in W1
+packages/studio         Stage 3 — owned by the studio wave-package only
 examples/claude-code-plugin   the /audit demo: scanner, auditors, fixer
 ```
