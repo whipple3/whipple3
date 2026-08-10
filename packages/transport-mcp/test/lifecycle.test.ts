@@ -1,7 +1,8 @@
 import { agentId, principal, sessionId, txId } from "@whipple3/core";
 import { createMemoryLog } from "@whipple3/log";
 import { describe, expect, it } from "vitest";
-import { checkPurge, createSession } from "../src/session.js";
+import { checkPurge } from "../src/lifetime.js";
+import { createSession } from "../src/session.js";
 
 const makeSession = () => {
   let now = 0;
