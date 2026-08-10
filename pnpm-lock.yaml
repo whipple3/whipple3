@@ -35,6 +35,10 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.0
         version: 1.30.0(zod@4.4.3)
+      citty:
+        specifier: ^0.1.6
+        version: 0.1.6
+    devDependencies:
       '@whipple3/core':
         specifier: workspace:*
         version: link:../core
@@ -47,9 +51,6 @@ importers:
       '@whipple3/transport-uds':
         specifier: workspace:*
         version: link:../transport-uds
-      citty:
-        specifier: ^0.1.6
-        version: 0.1.6
 
   packages/core:
     dependencies:

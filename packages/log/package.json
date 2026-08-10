@@ -1,8 +1,29 @@
 {
   "name": "@whipple3/log",
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "whipple3's append-only session log: the LogStore/ReadonlyLog ports with memory and NDJSON adapters, verified by a shared conformance suite.",
+  "keywords": [
+    "ai-agents",
+    "multi-agent",
+    "blackboard",
+    "coordination",
+    "event-sourcing",
+    "ndjson",
+    "append-only"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/whipple3/whipple3#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whipple3/whipple3.git",
+    "directory": "packages/log"
+  },
+  "bugs": "https://github.com/whipple3/whipple3/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
@@ -16,6 +37,7 @@
     "@whipple3/core": "workspace:*"
   },
   "publishConfig": {
+    "access": "public",
     "exports": {
       ".": {
         "types": "./dist/index.d.ts",

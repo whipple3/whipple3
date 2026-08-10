@@ -1,5 +1,13 @@
 {
   "name": "whipple3",
   "version": "0.1.0",
-  "description": "Shared typed blackboard for Claude Code subagents: /audit demo with per-agent identity over `whipple3 serve` and a human-approval gate on the fixer."
+  "description": "Shared typed blackboard for Claude Code subagents: /audit demo with per-agent identity over `whipple3 serve` and a human-approval gate on the fixer. Requires whipple3 >= 0.1.0 on PATH (npm link until the npm publish lands).",
+  "license": "MIT",
+  "author": {
+    "name": "Michael",
+    "url": "https://github.com/whipple3"
+  },
+  "keywords": ["blackboard", "multi-agent", "coordination", "mcp", "audit"],
+  "homepage": "https://github.com/whipple3/whipple3#readme",
+  "repository": "https://github.com/whipple3/whipple3"
 }
