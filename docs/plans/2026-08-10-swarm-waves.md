@@ -148,4 +148,10 @@ launches only after W2-B lands at the integration pass.
 
 *(append here during a wave; applied only at the wave boundary)*
 
-- —
+- **From W2-D (2026-08-10), for the Wave-3 contract pass** — role-slice transport wiring:
+  1. `tools.ts` `blackboard_read`: remove/deprecate `depth`; a declared agent gets
+     `sliceFor(state, root, decl, readableLabels(policy, agent))`, undeclared falls back
+     to `readableNeighborhood` with a server-side default depth during migration.
+  2. Session config grows `slices?: Readonly<Record<AgentId, SliceDecl>>` beside
+     `AclPolicy` — schema file, never tool payload (§4.7: the agent never picks its scope).
+  3. SPEC §4.7 one-sentence catch-up naming `sliceFor` as the declaration-bounded tier.
