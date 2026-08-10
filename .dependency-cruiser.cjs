@@ -6,7 +6,21 @@ module.exports = {
       severity: "error",
       comment: "@whipple3/core must not import from any other package (functional core).",
       from: { path: "^packages/core" },
-      to: { path: "^packages/(log|transport-mcp|studio|cli)" }
+      to: { path: "^packages/(log|transport-mcp|transport-uds|studio|cli)" }
+    },
+    {
+      name: "only-cli-uses-transport-uds",
+      severity: "error",
+      comment: "@whipple3/transport-uds is consumed by the cli only (W2-B import direction).",
+      from: { path: "^packages/(core|log|transport-mcp|studio)" },
+      to: { path: "^packages/transport-uds" }
+    },
+    {
+      name: "transport-uds-import-direction",
+      severity: "error",
+      comment: "@whipple3/transport-uds may depend on core/log/transport-mcp, never on studio or cli.",
+      from: { path: "^packages/transport-uds" },
+      to: { path: "^packages/(studio|cli)" }
     },
     {
       name: "no-node-in-core",

@@ -20,9 +20,11 @@
     "build": "tsup"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@whipple3/core": "workspace:*",
     "@whipple3/log": "workspace:*",
     "@whipple3/transport-mcp": "workspace:*",
+    "@whipple3/transport-uds": "workspace:*",
     "citty": "^0.1.6"
   }
 }
