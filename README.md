@@ -71,6 +71,22 @@ pnpm --filter @whipple3/studio dev /path/to/.whipple3/session-<ts>.ndjson
 Live graph, claims tinted per holding agent, per-node history, a time-travel scrubber over
 the log.
 
+## Hosts
+
+whipple3 speaks plain MCP stdio, so any MCP host can sit on the other side of the board.
+Every row below is backed by commands actually run on 2026-08-11 (or honestly marked
+doc-only) — evidence and exact wiring per host in [docs/hosts/](./docs/hosts/).
+Status legend: ✅ ran e2e · 🔒 installed but unauthenticated (wiring verified as far as
+auth allows; no logins attempted) · 📋 documented from official docs, not run.
+
+| Host | Status | Date | Notes |
+|---|---|---|---|
+| [Claude Code](./docs/hosts/claude-code.md) ≥ 2.1.138 | ✅ ran | 2026-08-11 | Five-agent `/audit` demo e2e: 3 parallel auditors, zero duplicate claims, zero lost updates. Plugin `.mcp.json` needs ≥ 2.1.140; `--mcp-config` fallback below that. |
+| [OpenAI Codex CLI](./docs/hosts/codex.md) 0.42.0 | 🔒 installed, unauthenticated | 2026-08-11 | MCP handshake + tool load verified via per-invocation `-c mcp_servers.*` overrides; model turn blocked (token refresh 401). Known issue: codex 0.42.0 drops `blackboard_next` at schema conversion (`additionalProperties: {}`). |
+| [Cursor CLI](./docs/hosts/cursor.md) 2026.04.17 | 🔒 installed, unauthenticated | 2026-08-11 | `.cursor/mcp.json` wiring verified: `cursor-agent mcp list-tools whipple3` returned all six tools over a live board. Agent turn needs `cursor-agent login`. |
+| [Gemini CLI](./docs/hosts/gemini-cli.md) 0.41.2 | 🔒 installed, unauthenticated | 2026-08-11 | Project `.gemini/settings.json` wiring per current docs; headless run stopped at auth (`IneligibleTierError` — no supported credential on the machine). |
+| [opencode](./docs/hosts/opencode.md) | 📋 documented, not run | 2026-08-11 | `opencode.json` `"mcp"` wiring from official docs (`type: "local"`, single command array). CLI not installed on the verification machine. |
+
 ## Status
 
 Pre-release (v0.1 vertical slice — see [SPEC.md](./SPEC.md) §12). What's real today:
