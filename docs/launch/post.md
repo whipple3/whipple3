@@ -4,6 +4,9 @@
 > Placeholders: `[STUDIO RECORDING]`, benchmark numbers. Suggested venues: HN (Show HN),
 > r/ClaudeAI / r/LocalLLaMA, X thread. Adapt length per venue; this is the long form.
 
+One agent doesn't need whipple3. **Two do.** One file doesn't need git either — the need
+appears the moment a second worker touches the same state, and it never goes away.
+
 Multi-agent coding setups coordinate through one of two broken channels. Either agents
 chat with each other in free text — which burns tokens on coordination, contaminates
 context, and is unauditable — or everything funnels through an orchestrator, which is
@@ -18,6 +21,36 @@ write through structured mutations instead of chat. It's the classic blackboard
 architecture (Hearsay-II lineage) with three modern additions — a typed schema, LLM
 agents, and an event-sourced core — packaged as an MCP server, so it works with
 whatever agent runtime you already run.
+
+The usual agent diagram — input, model, tools, sandbox, memory — has one loop in it, and
+whipple3 isn't a box in that loop. Draw a second agent and it appears immediately:
+
+```
+      agent A                agent B                agent C
+ ┌───────────────┐      ┌───────────────┐      ┌───────────────┐
+ │  LLM → tools  │      │  LLM → tools  │      │  LLM → tools  │
+ │   → sandbox   │      │   → sandbox   │      │   → sandbox   │
+ └───────┬───────┘      └───────┬───────┘      └───────┬───────┘
+         │        post / claim / read / release        │
+         ▼                      ▼                      ▼
+ ══════════════════════════════════════════════════════════════
+   whipple3 — shared typed state
+   checkAcl → apply → append         ← the one enforcement point
+ ══════════════════════════════════════════════════════════════
+                        │  append-only log = the truth
+      ┌─────────────────┼──────────────────┐
+      ▼                 ▼                  ▼
+ blackboard_next     Studio          distill → your
+ (next turn's        (live graph,     memory system
+  context: sliced,    time travel)
+  ACL-filtered)
+      │
+      └──→ replay → CI assertions
+```
+
+Note what feeds an agent's next turn: **other agents' writes**, filtered to the slice its
+role declared. Not its own history — that's memory, and memory is somebody else's box.
+The sandbox isolates agent ↔ machine; whipple3 mediates agent ↔ agent.
 
 ## If you know Redux, you know the shape
 
@@ -87,7 +120,10 @@ and not a framework replacement: whipple3 interoperates with Claude Code today a
 speaks MCP, so Codex CLI, Gemini CLI, Cursor, and opencode are the same server with a
 different host — that list becomes a compatibility table as each row gets a real run.
 Not an execution/sandbox layer — that layer is owned and we ride it. No query language
-for agents: constrained typed tools only, six of them.
+for agents: constrained typed tools only, six of them. And not a memory system: memory
+answers what *one* agent knew last week, whipple3 answers what *all* of them can see right
+now and how much of it each is allowed to see — `whipple3 distill` hands the session to
+whatever memory layer you already use.
 
 ## Try it
 
@@ -98,7 +134,7 @@ claude --plugin-dir <repo>/examples/claude-code-plugin   # terminal 2
 /whipple3:audit
 ```
 
-Requires Node ≥ 20. The repo README has the 10-minute path and the honest list of
+Requires Node ≥ 22. The repo README has the 10-minute path and the honest list of
 what's stubbed. MIT.
 
 ## Status, honestly
