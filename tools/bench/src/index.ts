@@ -9,9 +9,11 @@ export {
 } from "./mock.js";
 export { runAuditScenario } from "./scenario.js";
 export {
+  type AgentTotals,
   aggregateSidechains,
   loadSessionMetrics,
   type SessionMetrics,
+  type SidecarTranscript,
   type SidechainTotals,
 } from "./subagents.js";
 export {

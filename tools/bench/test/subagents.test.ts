@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -57,6 +57,37 @@ describe("loadSessionMetrics — main transcript plus subagent sidecar files", (
       requests: 3,
       contextInTokens: 3 * 1110,
       outputTokens: 20 + 30 + 40,
+      byAgent: [
+        { agentType: "auditor", requests: 1, contextInTokens: 1110, outputTokens: 20 },
+        { agentType: null, requests: 2, contextInTokens: 2220, outputTokens: 70 },
+      ],
     });
+  });
+
+  it("attributes each sidecar to its agent-*.meta.json agentType (real live layout)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "bench-sub-live-"));
+    const main = join(dir, "bb721fae.jsonl");
+    writeFileSync(main, `${assistantLine("req_m1", 50, false)}\n`);
+    const sub = join(dir, "bb721fae", "subagents");
+    mkdirSync(sub, { recursive: true });
+    const fixture = (f: string): URL => new URL(`./fixtures/${f}`, import.meta.url);
+    writeFileSync(
+      join(sub, "agent-abfcb99732bc0502c.jsonl"),
+      readFileSync(fixture("live-subagent.jsonl")),
+    );
+    writeFileSync(
+      join(sub, "agent-abfcb99732bc0502c.meta.json"),
+      readFileSync(fixture("live-subagent.meta.json")),
+    );
+
+    const m = loadSessionMetrics(main);
+    expect(m.subagents?.byAgent).toEqual([
+      {
+        agentType: "whipple3:whipple3-scanner",
+        requests: 3,
+        contextInTokens: 8 + 2445 + 14_556,
+        outputTokens: 140,
+      },
+    ]);
   });
 });

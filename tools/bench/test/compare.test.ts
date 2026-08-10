@@ -29,7 +29,7 @@ const w3: SessionMetrics = {
     wallMs: 300_000,
     toolCalls: 2,
   }),
-  subagents: { files: 2, requests: 3, contextInTokens: 3330, outputTokens: 90 },
+  subagents: { files: 2, requests: 3, contextInTokens: 3330, outputTokens: 90, byAgent: [] },
 };
 
 const vanilla: SessionMetrics = {
@@ -41,7 +41,7 @@ const vanilla: SessionMetrics = {
     wallMs: 240_000,
     toolCalls: 6,
   }),
-  subagents: { files: 3, requests: 6, contextInTokens: 8600, outputTokens: 400 },
+  subagents: { files: 3, requests: 6, contextInTokens: 8600, outputTokens: 400, byAgent: [] },
 };
 
 const board: BoardMetrics = {

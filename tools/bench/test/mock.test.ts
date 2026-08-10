@@ -25,12 +25,14 @@ describe("mock transcript pair — synthetic but format-true, exact predeclared 
     expect(w3.main.sidechainLines).toBe(0);
   });
 
-  it("whipple3 sidecars: three auditors, fixed totals", () => {
+  it("whipple3 sidecars: three auditors, fixed totals, no meta files → untyped", () => {
+    const perFile = { agentType: null, requests: 2, contextInTokens: 20_000, outputTokens: 500 };
     expect(w3.subagents).toEqual({
       files: 3,
       requests: 6,
       contextInTokens: 60_000,
       outputTokens: 1_500,
+      byAgent: [perFile, perFile, perFile],
     });
   });
 
@@ -43,12 +45,14 @@ describe("mock transcript pair — synthetic but format-true, exact predeclared 
     expect(vanilla.main.toolCallsByName).toEqual({ Task: 3 });
   });
 
-  it("vanilla sidecars: three auditors, fixed totals", () => {
+  it("vanilla sidecars: three auditors, fixed totals, no meta files → untyped", () => {
+    const perFile = { agentType: null, requests: 2, contextInTokens: 21_000, outputTokens: 600 };
     expect(vanilla.subagents).toEqual({
       files: 3,
       requests: 6,
       contextInTokens: 63_000,
       outputTokens: 1_800,
+      byAgent: [perFile, perFile, perFile],
     });
   });
 
