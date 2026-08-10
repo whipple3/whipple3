@@ -90,6 +90,13 @@ filtering, principal).
 
 ---
 
+> **STATUS: Wave 2 A–D CLOSED 2026-08-11** — all four merged, final gate 181 tests green
+> with build. Landed: distill CLI + lifetime-gated purge + incremental jsonl read (W2-A);
+> `whipple3 serve` UDS backend + per-agent `mcp --board` proxies with cross-process
+> identity proof (W2-B); Studio claim tinting, history panel, time-travel scrubber,
+> ForceAtlas2 (W2-C); role-declared slice DSL with the ACL-narrowing property (W2-D).
+> **W2-E launched post-merge** on the serve backend.
+
 ## Wave 2 — LAUNCHED 2026-08-10 (after the pre-wave contract pass, `5df5111`)
 
 Pre-wave contract pass already landed on main (rulings on the Wave-1 queue):
@@ -155,3 +162,8 @@ launches only after W2-B lands at the integration pass.
   2. Session config grows `slices?: Readonly<Record<AgentId, SliceDecl>>` beside
      `AclPolicy` — schema file, never tool payload (§4.7: the agent never picks its scope).
   3. SPEC §4.7 one-sentence catch-up naming `sliceFor` as the declaration-bounded tier.
+- **From W2-B (2026-08-11), for the Wave-3 contract pass:** `AgentConnection.status()`
+  → `Promise<SessionStatus>` — the one sync method no socket proxy can honor; fixing it
+  lets `mcp --board` reuse `createServer` instead of re-registering the six tools.
+- **Integration notes (2026-08-11):** add a distill case to the cli e2e;
+  `session.ts` at 273 lines (> 200 soft budget) — flagged, split only when it earns it.
