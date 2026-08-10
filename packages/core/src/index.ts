@@ -19,10 +19,10 @@ export type { Mutation, MutationError } from "./mutation.js";
 export { apply, replay } from "./mutation.js";
 export type { Err, Ok, Result } from "./result.js";
 export { err, isErr, isOk, map, ok, unwrapOr } from "./result.js";
-export type { EdgeType, NodeType, Trigger } from "./schema.js";
-export { defineEdge, defineNode } from "./schema.js";
+export type { EdgeType, FollowRule, NodeType, SliceDecl, Trigger } from "./schema.js";
+export { defineEdge, defineNode, defineSlice, follow } from "./schema.js";
 
 export type { Slice } from "./slice.js";
-export { availableWork, neighborhood, readableNeighborhood } from "./slice.js";
+export { availableWork, neighborhood, readableNeighborhood, sliceFor } from "./slice.js";
 export type { ClaimRecord, EdgeRecord, GraphState, NodeRecord } from "./state.js";
 export { emptyState } from "./state.js";
