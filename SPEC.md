@@ -82,6 +82,10 @@ The **append-only event log is the source of truth**. The graph is a materialize
 ### 4.6 Security model
 
 - `canMutate` **ACL at the schema level** — enforced by the engine on every mutation.
+- **Identity is bound to the connection, never self-declared.** No tool payload carries an
+  `agentId`; the transport binds one at `session.connect` (stdio: one server process per
+  agent, `whipple3 mcp --agent <id>`; UDS in Phase 2: one socket per agent). An ACL keyed
+  on a name the payload can assert is decorative.
 - **Host permission systems as a second gate** (Claude Code `tools` allowlists in v0.1).
 - **HITL gates** for high-impact mutations (e.g., a fixer's changes require approval).
 - Taint/provenance labeling for agents processing untrusted input: **designed for, deferred to Phase 2.**
@@ -132,7 +136,7 @@ examples/
 | `blackboard_next` | Pull the next pending work item for this role (`when()` in pull mode) |
 | `blackboard_status` | Session/graph summary |
 
-**Envelope (NDJSON on the wire and in the log):** `protocolVersion`, `sessionId`, `agentId`, `ts`, `causationId`, `correlationId` (W3C traceparent-compatible IDs), payload. Transaction IDs are **ULIDs**. Errors return as structured values (mirroring core's `Result`), never as prose.
+**Envelope (NDJSON on the wire and in the log):** `protocolVersion`, `sessionId`, `agentId`, `principal`, `ts`, `causationId`, `correlationId` (W3C traceparent-compatible IDs), payload. `agentId` is derived from the connection — tool payloads carry no identity (§4.6). `principal` is on-behalf-of attribution ("Michael's agent did", not just "auditor did"): read from the local environment in OSS, injectable via `WHIPPLE3_PRINCIPAL` (the enterprise/SSO hook). Transaction IDs are **ULIDs**. Errors return as structured values (mirroring core's `Result`), never as prose.
 
 ## 7. Event taxonomy
 

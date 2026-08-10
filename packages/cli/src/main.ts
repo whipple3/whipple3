@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { mkdirSync } from "node:fs";
+import { agentId } from "@whipple3/core";
 import { createJsonlLog } from "@whipple3/log";
 import { createSession, liveSessionDeps, serveStdio } from "@whipple3/transport-mcp";
 import { defineCommand, runMain } from "citty";
@@ -14,7 +15,16 @@ const stub = (name: string) =>
 
 const mcp = defineCommand({
   meta: { name: "mcp", description: "Start the whipple3 blackboard MCP server on stdio." },
-  async run() {
+  args: {
+    agent: {
+      type: "string",
+      description:
+        "Agent identity bound to this connection (stdio: one server process per agent). " +
+        "Default 'main' — the host's own multiplexed connection.",
+      default: "main",
+    },
+  },
+  async run({ args }) {
     mkdirSync(".whipple3", { recursive: true });
     const stamp = new Date().toISOString().replaceAll(":", "-");
     const session = createSession({
@@ -24,7 +34,7 @@ const mcp = defineCommand({
       ...liveSessionDeps(),
     });
     // stdout is the MCP wire from here on — nothing else may print to it.
-    await serveStdio(session);
+    await serveStdio(session.connect(agentId(args.agent)));
   },
 });
 

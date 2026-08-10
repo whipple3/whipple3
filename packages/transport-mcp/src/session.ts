@@ -2,7 +2,6 @@ import {
   type AclError,
   type AclPolicy,
   type AgentId,
-  agentId,
   apply,
   availableWork,
   checkAcl,
@@ -17,6 +16,7 @@ import {
   neighborhood,
   nodeId,
   ok,
+  type Principal,
   type Result,
   type SessionId,
   type Slice,
@@ -40,6 +40,8 @@ export interface SessionDeps {
   /** null = no ACL configured: the host's tool allowlist is the only gate. (SPEC §4.6) */
   readonly acl: AclPolicy | null;
   readonly sessionId: SessionId;
+  /** On whose behalf this session runs. Injected: local env in OSS, SSO in enterprise. */
+  readonly principal: Principal | null;
   readonly now: () => number;
   readonly newTxId: () => TxId;
 }
@@ -93,6 +95,7 @@ export const createSession = (deps: SessionDeps) => {
     txId: tx,
     sessionId: deps.sessionId,
     agentId: agent,
+    principal: deps.principal,
     ts: deps.now(),
     causationId: null,
     correlationId,
@@ -111,14 +114,19 @@ export const createSession = (deps: SessionDeps) => {
     return ok(tx);
   };
 
-  return {
+  /**
+   * Identity enters here, once per connection — payloads cannot assert or override it.
+   * stdio: one process per connection (the transport passes its bound agent);
+   * UDS (Phase 2): one socket per agent, same principle. (SPEC §4.6)
+   */
+  const connect = (agent: AgentId) => ({
     async post(
       input: unknown,
     ): Promise<Result<{ txId: TxId; version: Version | null }, SessionError>> {
       const parsed = parseWith(toolInputs.blackboard_post, input);
       if (!parsed.ok) return parsed;
       const m = brandMutation(parsed.value.mutation);
-      const committed = await commit(agentId(parsed.value.agentId), m);
+      const committed = await commit(agent, m);
       if (!committed.ok) return committed;
       const touched = m.kind === "ADD_EDGE" ? null : (state.nodes.get(m.id)?.version ?? null);
       return ok({ txId: committed.value, version: touched });
@@ -128,10 +136,10 @@ export const createSession = (deps: SessionDeps) => {
       const parsed = parseWith(toolInputs.blackboard_claim, input);
       if (!parsed.ok) return parsed;
       const at = deps.now();
-      const committed = await commit(agentId(parsed.value.agentId), {
+      const committed = await commit(agent, {
         kind: "CLAIM_NODE",
         id: nodeId(parsed.value.id),
-        agentId: agentId(parsed.value.agentId),
+        agentId: agent,
         now: at,
         ttlMs: parsed.value.ttlMs,
       });
@@ -164,9 +172,10 @@ export const createSession = (deps: SessionDeps) => {
       for (const c of state.claims.values()) if (c.expiresAt > at) activeClaims += 1;
       return { nodes: state.nodes.size, edges: state.edges.size, activeClaims, byLabel };
     },
+  });
 
-    snapshot: (): GraphState => state,
-  };
+  return { connect, snapshot: (): GraphState => state };
 };
 
 export type Session = ReturnType<typeof createSession>;
+export type AgentConnection = ReturnType<Session["connect"]>;

@@ -1,23 +1,31 @@
+import { userInfo } from "node:os";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { sessionId, txId } from "@whipple3/core";
+import { agentId, sessionId, txId } from "@whipple3/core";
 import { createMemoryLog } from "@whipple3/log";
-import { describe, expect, it } from "vitest";
-import { createServer } from "../src/server.js";
-import { createSession } from "../src/session.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { createServer, liveSessionDeps } from "../src/server.js";
+import { createSession, type Session } from "../src/session.js";
 
-const connected = async () => {
+const makeSession = () => {
   let n = 0;
+  const log = createMemoryLog();
   const session = createSession({
-    log: createMemoryLog(),
+    log,
     acl: null,
     sessionId: sessionId("s1"),
+    principal: null,
     now: () => 0,
     newTxId: () => txId(`tx${n++}`),
   });
+  return { session, log };
+};
+
+/** One MCP server per connection: the transport, not the payload, carries identity. */
+const connectClient = async (session: Session, agent: string): Promise<Client> => {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  await createServer(session).connect(serverTransport);
-  const client = new Client({ name: "test-agent", version: "0.0.0" });
+  await createServer(session.connect(agentId(agent))).connect(serverTransport);
+  const client = new Client({ name: `test-${agent}`, version: "0.0.0" });
   await client.connect(clientTransport);
   return client;
 };
@@ -29,8 +37,8 @@ const payloadOf = (result: Awaited<ReturnType<Client["callTool"]>>): unknown => 
 };
 
 describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", () => {
-  it("advertises exactly the five blackboard tools", async () => {
-    const client = await connected();
+  it("advertises exactly the five blackboard tools, none accepting an agentId", async () => {
+    const client = await connectClient(makeSession().session, "scanner");
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       "blackboard_claim",
@@ -39,14 +47,16 @@ describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", 
       "blackboard_read",
       "blackboard_status",
     ]);
+    for (const tool of tools) {
+      expect(Object.keys(tool.inputSchema.properties ?? {})).not.toContain("agentId");
+    }
   });
 
   it("post round-trips a Result payload", async () => {
-    const client = await connected();
+    const client = await connectClient(makeSession().session, "scanner");
     const result = await client.callTool({
       name: "blackboard_post",
       arguments: {
-        agentId: "scanner",
         mutation: { kind: "ADD_NODE", id: "f1", label: "CodeFile", props: { status: "pending" } },
       },
     });
@@ -54,22 +64,39 @@ describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", 
     expect(payloadOf(result)).toMatchObject({ ok: true, value: { version: 1 } });
   });
 
-  it("domain rejections surface as structured Result errors with isError, never prose", async () => {
-    const client = await connected();
-    await client.callTool({
+  it("a spoofed agentId argument is stripped at the wire; the log records the bound agent", async () => {
+    const { session, log } = makeSession();
+    const client = await connectClient(session, "scanner");
+    const result = await client.callTool({
       name: "blackboard_post",
       arguments: {
-        agentId: "scanner",
+        agentId: "fixer",
         mutation: { kind: "ADD_NODE", id: "f1", label: "CodeFile", props: {} },
       },
     });
-    await client.callTool({
-      name: "blackboard_claim",
-      arguments: { agentId: "auditor-1", id: "f1", ttlMs: 60_000 },
+    expect(result.isError).toBeFalsy();
+    const records = await log.read();
+    expect(records[0]?.meta.agentId).toBe("scanner");
+  });
+
+  it("domain rejections surface as structured Result errors with isError, never prose", async () => {
+    const { session } = makeSession();
+    const scanner = await connectClient(session, "scanner");
+    const auditor1 = await connectClient(session, "auditor-1");
+    const auditor2 = await connectClient(session, "auditor-2");
+    await scanner.callTool({
+      name: "blackboard_post",
+      arguments: {
+        mutation: { kind: "ADD_NODE", id: "f1", label: "CodeFile", props: {} },
+      },
     });
-    const conflict = await client.callTool({
+    await auditor1.callTool({
       name: "blackboard_claim",
-      arguments: { agentId: "auditor-2", id: "f1", ttlMs: 60_000 },
+      arguments: { id: "f1", ttlMs: 60_000 },
+    });
+    const conflict = await auditor2.callTool({
+      name: "blackboard_claim",
+      arguments: { id: "f1", ttlMs: 60_000 },
     });
     expect(conflict.isError).toBe(true);
     expect(payloadOf(conflict)).toMatchObject({
@@ -79,21 +106,40 @@ describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", 
   });
 
   it("next and status answer through the same pipe", async () => {
-    const client = await connected();
-    await client.callTool({
+    const { session } = makeSession();
+    const scanner = await connectClient(session, "scanner");
+    await scanner.callTool({
       name: "blackboard_post",
       arguments: {
-        agentId: "scanner",
         mutation: { kind: "ADD_NODE", id: "f1", label: "CodeFile", props: { status: "pending" } },
       },
     });
-    const next = await client.callTool({
+    const auditor = await connectClient(session, "auditor-1");
+    const next = await auditor.callTool({
       name: "blackboard_next",
-      arguments: { agentId: "auditor-1", label: "CodeFile", match: { status: "pending" } },
+      arguments: { label: "CodeFile", match: { status: "pending" } },
     });
     expect(payloadOf(next)).toMatchObject({ ok: true, value: { pending: 1 } });
 
-    const status = await client.callTool({ name: "blackboard_status", arguments: {} });
+    const status = await auditor.callTool({ name: "blackboard_status", arguments: {} });
     expect(payloadOf(status)).toMatchObject({ ok: true, value: { nodes: 1 } });
+  });
+});
+
+describe("liveSessionDeps — principal from the local environment (OSS default)", () => {
+  const saved = process.env.WHIPPLE3_PRINCIPAL;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.WHIPPLE3_PRINCIPAL;
+    else process.env.WHIPPLE3_PRINCIPAL = saved;
+  });
+
+  it("WHIPPLE3_PRINCIPAL — the external-injection hook — wins over the OS user", () => {
+    process.env.WHIPPLE3_PRINCIPAL = "sso:michael@example.com";
+    expect(liveSessionDeps().principal).toBe("sso:michael@example.com");
+  });
+
+  it("falls back to the OS user when the hook is unset", () => {
+    delete process.env.WHIPPLE3_PRINCIPAL;
+    expect(liveSessionDeps().principal).toBe(userInfo().username);
   });
 });

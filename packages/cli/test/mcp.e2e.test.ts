@@ -60,7 +60,7 @@ describe("whipple3 mcp — end-to-end over stdio (CLAUDE.md W1 §4)", () => {
 
   it("serves the blackboard and writes the session NDJSON log", async () => {
     if (!existsSync(bin)) throw new Error("dist/main.js missing — run `pnpm build` first");
-    child = spawn("node", [bin, "mcp"], { cwd });
+    child = spawn("node", [bin, "mcp", "--agent", "scanner"], { cwd });
     const client = rpcClient(child);
 
     const init = await client.request("initialize", {
@@ -74,7 +74,6 @@ describe("whipple3 mcp — end-to-end over stdio (CLAUDE.md W1 §4)", () => {
     const post = await client.request("tools/call", {
       name: "blackboard_post",
       arguments: {
-        agentId: "scanner",
         mutation: { kind: "ADD_NODE", id: "f1", label: "CodeFile", props: { status: "pending" } },
       },
     });
@@ -90,10 +89,11 @@ describe("whipple3 mcp — end-to-end over stdio (CLAUDE.md W1 §4)", () => {
     const lines = readFileSync(join(logDir, logFile), "utf8").trim().split("\n");
     expect(lines).toHaveLength(1);
     const record = JSON.parse(lines[0] ?? "") as {
-      meta: { agentId: string };
+      meta: { agentId: string; principal: string | null };
       event: { type: string };
     };
     expect(record.event.type).toBe("graph.mutation");
     expect(record.meta.agentId).toBe("scanner");
+    expect(record.meta.principal).toBeTruthy();
   });
 });

@@ -3,10 +3,12 @@ import { z } from "zod";
 /**
  * The five MCP tools of the blackboard (SPEC §6). Input schemas live here so the MCP
  * JSON Schemas are a projection of one source of truth (SPEC §9.3, DRY of knowledge).
+ *
+ * No tool accepts an agentId: identity is bound to the connection at `session.connect`,
+ * never self-declared in a payload — otherwise the ACL is decorative. (SPEC §4.6)
  */
 export const toolInputs = {
   blackboard_post: z.object({
-    agentId: z.string().min(1),
     mutation: z.discriminatedUnion("kind", [
       z.object({
         kind: z.literal("ADD_NODE"),
@@ -30,17 +32,14 @@ export const toolInputs = {
     ]),
   }),
   blackboard_read: z.object({
-    agentId: z.string().min(1),
     root: z.string().min(1),
     depth: z.number().int().min(0).max(5).default(2),
   }),
   blackboard_claim: z.object({
-    agentId: z.string().min(1),
     id: z.string().min(1),
     ttlMs: z.number().int().positive().default(120_000),
   }),
   blackboard_next: z.object({
-    agentId: z.string().min(1),
     label: z.string().min(1),
     match: z.record(z.string(), z.unknown()).default({}),
   }),

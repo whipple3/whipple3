@@ -12,9 +12,13 @@ Goal: a Claude Code subagent can post / claim / read against a running `whipple3
 
 1. `packages/transport-mcp/src/session.ts` — the imperative shell. Owns the current
    `GraphState`, a `LogStore`, and an `AclPolicy`. Injects time and ULID txIds; assembles
-   `EventMeta` (causationId / correlationId). Pipeline per mutation:
+   `EventMeta` (causationId / correlationId / principal). Pipeline per mutation:
    parse (Zod, from tools.ts) → `checkAcl` → `apply` → `append` → Result-shaped payload.
    Core stays untouched and pure.
+   Identity is bound at `session.connect(agentId)` — one connection, one agent. No tool
+   payload carries an `agentId`, ever; a payload-asserted identity is the spoofing hole
+   this design closes. `principal` (on whose behalf the session runs) is injected via
+   `SessionDeps`: local env in OSS (`WHIPPLE3_PRINCIPAL` overrides the OS user), SSO later.
 2. `packages/transport-mcp/src/server.ts` — stdio MCP server via
    `@modelcontextprotocol/sdk`, registering the five tools from `tools.ts`.
    Verify the SDK's current API from its own docs/types — do not code it from memory.
@@ -22,8 +26,9 @@ Goal: a Claude Code subagent can post / claim / read against a running `whipple3
 3. `blackboard_next` — pull-mode query: nodes of the given label matching `match` props,
    excluding nodes with a valid (unexpired) claim. If the query is pure, it belongs in
    core (`slice.ts` or a sibling); anything needing a clock stays in session.
-4. `packages/cli` — wire `whipple3 mcp` to start the server with a JSONL log under
-   `.whipple3/session-<timestamp>.ndjson`.
+4. `packages/cli` — wire `whipple3 mcp --agent <id>` to start the server with a JSONL log
+   under `.whipple3/session-<timestamp>.ndjson`. The flag names the connection's agent
+   (default `main` — the host's own multiplexed connection).
 5. Tests — integration tests at the session layer (drive the five handlers, assert both
    log contents and resulting state). Keep the property tests and conformance suites green.
 

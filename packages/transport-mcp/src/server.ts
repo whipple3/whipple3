@@ -1,8 +1,9 @@
+import { userInfo } from "node:os";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ok, type Result, sessionId, txId } from "@whipple3/core";
+import { ok, type Principal, principal, type Result, sessionId, txId } from "@whipple3/core";
 import { ulid } from "ulid";
-import type { Session, SessionDeps } from "./session.js";
+import type { AgentConnection, SessionDeps } from "./session.js";
 import { toolInputs } from "./tools.js";
 
 /** Every tool answers with a serialized Result — structured data, never prose. (SPEC §6) */
@@ -12,10 +13,12 @@ const asToolResult = (r: Result<unknown, unknown>) => ({
 });
 
 /**
+ * One server per connection, already bound to its agent (`session.connect`): the MCP
+ * transport is the identity boundary, so no tool payload carries an agentId. (SPEC §4.6)
  * The SDK validates against the same schemas it advertises; session re-parses the raw
  * object because its own boundary is `unknown` (tests and future transports call it directly).
  */
-export const createServer = (session: Session): McpServer => {
+export const createServer = (session: AgentConnection): McpServer => {
   const server = new McpServer({ name: "whipple3", version: "0.0.0" });
 
   server.registerTool(
@@ -66,13 +69,28 @@ export const createServer = (session: Session): McpServer => {
   return server;
 };
 
+/** WHIPPLE3_PRINCIPAL is the injection hook (enterprise: SSO); OSS default is the OS user. */
+const localPrincipal = (): Principal | null => {
+  const injected = process.env.WHIPPLE3_PRINCIPAL;
+  if (injected !== undefined && injected !== "") return principal(injected);
+  try {
+    return principal(userInfo().username);
+  } catch {
+    return null;
+  }
+};
+
 /** Production identity and time for a session; tests inject their own. */
-export const liveSessionDeps = (): Pick<SessionDeps, "sessionId" | "now" | "newTxId"> => ({
+export const liveSessionDeps = (): Pick<
+  SessionDeps,
+  "sessionId" | "principal" | "now" | "newTxId"
+> => ({
   sessionId: sessionId(ulid()),
+  principal: localPrincipal(),
   now: Date.now,
   newTxId: () => txId(ulid()),
 });
 
-export const serveStdio = async (session: Session): Promise<void> => {
+export const serveStdio = async (session: AgentConnection): Promise<void> => {
   await createServer(session).connect(new StdioServerTransport());
 };

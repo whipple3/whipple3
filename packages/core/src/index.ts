@@ -3,13 +3,14 @@
 export type { AclError, AclPolicy } from "./acl.js";
 export { checkAcl } from "./acl.js";
 export type { EventMeta, LogRecord, Whipple3Event } from "./events.js";
-export type { AgentId, Brand, EdgeId, NodeId, SessionId, TxId, Version } from "./ids.js";
+export type { AgentId, Brand, EdgeId, NodeId, Principal, SessionId, TxId, Version } from "./ids.js";
 export {
   agentId,
   bump,
   edgeId,
   INITIAL_VERSION,
   nodeId,
+  principal,
   sessionId,
   txId,
   version,

@@ -1,5 +1,5 @@
 import type { EventMeta, Whipple3Event } from "@whipple3/core";
-import { agentId, sessionId, txId } from "@whipple3/core";
+import { agentId, principal, sessionId, txId } from "@whipple3/core";
 import { describe, expect, it } from "vitest";
 import type { LogStore } from "../src/port.js";
 
@@ -7,6 +7,7 @@ const meta = (n: number): EventMeta => ({
   txId: txId(`tx${n}`),
   sessionId: sessionId("s1"),
   agentId: agentId("a1"),
+  principal: principal("p1"),
   ts: n,
   causationId: null,
   correlationId: txId("tx0"),

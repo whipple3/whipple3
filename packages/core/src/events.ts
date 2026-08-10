@@ -1,14 +1,17 @@
-import type { AgentId, SessionId, TxId } from "./ids.js";
+import type { AgentId, Principal, SessionId, TxId } from "./ids.js";
 import type { Mutation } from "./mutation.js";
 
 /**
  * Causality baked into every event: `causationId` chains double as cycle detection /
  * hop budgets (safety) and trace propagation (observability). (SPEC §4.5, §7)
+ * `principal` is on-behalf-of attribution — "Michael's agent did", not just "auditor
+ * did". Reserved now because it cannot be reconstructed from old logs later.
  */
 export interface EventMeta {
   readonly txId: TxId;
   readonly sessionId: SessionId;
   readonly agentId: AgentId | null;
+  readonly principal: Principal | null;
   readonly ts: number;
   readonly causationId: TxId | null;
   readonly correlationId: TxId;
