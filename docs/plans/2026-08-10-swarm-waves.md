@@ -231,6 +231,13 @@ Stage 8 ecosystem · Stage 9 commercial optionality — none enter MIT beyond th
 
 *(append here during a wave; applied only at the wave boundary)*
 
+- **From W4-B (2026-08-11), interop:** codex CLI 0.42.0 drops `blackboard_next` at
+  MCP→OpenAI schema conversion — `match`'s `z.record(z.string(), z.unknown())` emits
+  `"additionalProperties": {}` (object form) and codex accepts only the boolean form
+  at a top-level property. Fix at the next tools.ts touch; verifiable WITHOUT codex
+  login (its tool-load step runs pre-auth — repro command in docs/hosts/codex.md).
+  Cursor accepts all six as-is.
+
 - **From W2-D (2026-08-10), for the Wave-3 contract pass** — role-slice transport wiring:
   1. `tools.ts` `blackboard_read`: remove/deprecate `depth`; a declared agent gets
      `sliceFor(state, root, decl, readableLabels(policy, agent))`, undeclared falls back
