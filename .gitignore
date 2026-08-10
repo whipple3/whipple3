@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.arai/
+.whipple3/
 *.tsbuildinfo
 .DS_Store
 coverage/

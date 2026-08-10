@@ -1,7 +1,7 @@
-import { sessionId, txId } from "@arai/core";
-import { createMemoryLog } from "@arai/log";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { sessionId, txId } from "@whipple3/core";
+import { createMemoryLog } from "@whipple3/log";
 import { describe, expect, it } from "vitest";
 import { createServer } from "../src/server.js";
 import { createSession } from "../src/session.js";

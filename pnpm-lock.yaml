@@ -32,13 +32,13 @@ importers:
 
   packages/cli:
     dependencies:
-      '@arai/core':
+      '@whipple3/core':
         specifier: workspace:*
         version: link:../core
-      '@arai/log':
+      '@whipple3/log':
         specifier: workspace:*
         version: link:../log
-      '@arai/transport-mcp':
+      '@whipple3/transport-mcp':
         specifier: workspace:*
         version: link:../transport-mcp
       citty:
@@ -53,7 +53,7 @@ importers:
 
   packages/log:
     dependencies:
-      '@arai/core':
+      '@whipple3/core':
         specifier: workspace:*
         version: link:../core
 
@@ -61,15 +61,15 @@ importers:
 
   packages/transport-mcp:
     dependencies:
-      '@arai/core':
-        specifier: workspace:*
-        version: link:../core
-      '@arai/log':
-        specifier: workspace:*
-        version: link:../log
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.0
         version: 1.30.0(zod@4.4.3)
+      '@whipple3/core':
+        specifier: workspace:*
+        version: link:../core
+      '@whipple3/log':
+        specifier: workspace:*
+        version: link:../log
       ulid:
         specifier: ^3.0.2
         version: 3.0.2

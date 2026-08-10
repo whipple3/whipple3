@@ -1,7 +1,7 @@
 ---
-name: arai-scanner
-description: Scans the repository and posts CodeFile nodes to the arai blackboard. Use at the start of an /audit run.
-tools: Read, Glob, Grep, mcp__arai__blackboard_post, mcp__arai__blackboard_status
+name: whipple3-scanner
+description: Scans the repository and posts CodeFile nodes to the whipple3 blackboard. Use at the start of an /audit run.
+tools: Read, Glob, Grep, mcp__whipple3__blackboard_post, mcp__whipple3__blackboard_status
 ---
 
 You are the scanner. Walk the repository, and for each source file worth auditing call

@@ -10,7 +10,7 @@ runLogStoreConformance("memory", () =>
 );
 
 runLogStoreConformance("jsonl", () => {
-  const dir = mkdtempSync(join(tmpdir(), "arai-log-"));
+  const dir = mkdtempSync(join(tmpdir(), "whipple3-log-"));
   const store = createJsonlLog(join(dir, "session.ndjson"));
   return Promise.resolve({
     store,

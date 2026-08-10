@@ -1,13 +1,13 @@
-# arai — Specification v0.1
+# whipple3 — Specification v0.1
 
 **Status:** Accepted — approved for vertical slice implementation
 **Date:** 2026-08-10
 **License:** MIT
-**Name:** `arai` (ארעי, Hebrew: *ephemeral*) — npm package name verified free 2026-08-10
+**Name:** `whipple3` (from *whippletree*, the crossbar that lets a harnessed team pull one load together) — npm package and github.com/whipple3 verified free 2026-08-10
 
-> **Positioning in one line:** NanoClaw isolates one agent from your machine. **arai coordinates many agents with each other.**
+> **Positioning in one line:** NanoClaw isolates one agent from your machine. **whipple3 coordinates many agents with each other.**
 
-arai is a **typed, ephemeral, event-sourced blackboard** — a shared knowledge graph that multiple AI agents read and write through structured mutations instead of chat. It is a **coordination plane**, deliberately not an execution plane, an orchestration framework, or a model runtime.
+whipple3 is a **typed, ephemeral, event-sourced blackboard** — a shared knowledge graph that multiple AI agents read and write through structured mutations instead of chat. It is a **coordination plane**, deliberately not an execution plane, an orchestration framework, or a model runtime.
 
 ---
 
@@ -36,7 +36,7 @@ The thesis is research-validated (2025–26): blackboard-style shared state outp
 ## 3. Non-goals (v0.x)
 
 - **Not an execution/sandbox layer.** Container isolation, credential gateways, microVMs — that layer is owned (NanoClaw, E2B, Daytona). We ride it via adapters (Phase 2), we do not rebuild it. *(ADR-003)*
-- **Not a framework replacement.** arai interoperates with Claude Code, Mastra, AgentKit — it does not compete with them for the agent loop.
+- **Not a framework replacement.** whipple3 interoperates with Claude Code, Mastra, AgentKit — it does not compete with them for the agent loop.
 - **No LLM calls in core.** Ever. Models are brought by the host runtime (v0.1) or a `ModelProvider` port (Phase 2).
 - **No vendor lock-in.** Model-agnostic by construction. The agent-facing surface is MCP — an open standard spoken by Claude Code, Codex CLI, Gemini CLI, Cursor, opencode, Goose. Claude Code as first demo is a **distribution** decision, not an architectural dependency.
 - **No query language exposed to LLMs.** No Cypher. Agents get constrained, typed tools only.
@@ -47,7 +47,7 @@ The thesis is research-validated (2025–26): blackboard-style shared state outp
 
 ### 4.1 Functional core, imperative shell
 
-`@arai/core` is **pure**: zero I/O, zero `Date.now()`, zero randomness, zero Node APIs. Time and IDs are injected in; effects live in the shell behind ports. The central function is a reducer:
+`@whipple3/core` is **pure**: zero I/O, zero `Date.now()`, zero randomness, zero Node APIs. Time and IDs are injected in; effects live in the shell behind ports. The central function is a reducer:
 
 ```ts
 apply(state: GraphState, mutation: Mutation): Result<{ state: GraphState; events: Event[] }, MutationError>
@@ -70,7 +70,7 @@ The **append-only event log is the source of truth**. The graph is a materialize
 ### 4.4 Dispatch: two modes, one core
 
 - **Pull** (host-controlled runtimes, e.g., Claude Code): the host's orchestrator controls spawning; `when()` predicates compile to **work-queue queries** (`blackboard_next`). **v0.1 implements pull only.** *(ADR-002)*
-- **Push** (arai-controlled runtime, Phase 2): reactive triggers dispatch agents on matching mutations, with a real scheduler (queues, concurrency caps, batching, retries, lease expiry, quiescence detection).
+- **Push** (whipple3-controlled runtime, Phase 2): reactive triggers dispatch agents on matching mutations, with a real scheduler (queues, concurrency caps, batching, retries, lease expiry, quiescence detection).
 
 ### 4.5 Concurrency & safety
 
@@ -116,11 +116,11 @@ examples/
 **Ports (v0.1):** `LogStore` (append/read/subscribe — Studio depends on `ReadonlyLog` only), `Transport`.
 **Ports (Phase 2):** `SandboxProvider`, `ModelProvider`, `Exporter`, `TelemetryExporter`.
 
-`@arai/core` has **exactly one runtime dependency: Zod v4**. The public schema boundary is **Standard Schema**, so users may bring Valibot/ArkType. `index.ts` is the only entry, locked via `package.json` `exports` — no deep imports.
+`@whipple3/core` has **exactly one runtime dependency: Zod v4**. The public schema boundary is **Standard Schema**, so users may bring Valibot/ArkType. `index.ts` is the only entry, locked via `package.json` `exports` — no deep imports.
 
 ## 6. Protocol & MCP surface
 
-**Transport (v0.1):** MCP over **stdio** via the official `@modelcontextprotocol/sdk`. UDS transport is **deferred to Phase 2** *(ADR-005)* — it is only needed when arai runs its own sandboxes.
+**Transport (v0.1):** MCP over **stdio** via the official `@modelcontextprotocol/sdk`. UDS transport is **deferred to Phase 2** *(ADR-005)* — it is only needed when whipple3 runs its own sandboxes.
 
 **Tools exposed:**
 
@@ -146,9 +146,9 @@ This single decision is what makes observability and evals adapters later instea
 
 **Why here first:** largest concentration of developers running local multi-agent workflows with felt pain (isolated subagents, summary-only returns, token multiplication); the most mature parallel-subagent primitive; one-line plugin install; maximum visibility. The same MCP server is host-agnostic by design.
 
-**What Claude Code provides for free:** orchestration, models (per-subagent `model` frontmatter — arai never sees model choice), tool execution, permissions. **Therefore out of scope for the slice:** sandboxes, scheduler, LLM layer, UDS, OTel adapter, evals package, CRDTs, XState.
+**What Claude Code provides for free:** orchestration, models (per-subagent `model` frontmatter — whipple3 never sees model choice), tool execution, permissions. **Therefore out of scope for the slice:** sandboxes, scheduler, LLM layer, UDS, OTel adapter, evals package, CRDTs, XState.
 
-**Packaging:** a Claude Code **plugin** bundling the MCP server (`.mcp.json`), three subagents (`.claude/agents/`), and an `/audit` command. Minimal path alternative: `claude mcp add --transport stdio arai -- npx arai mcp` + drop agent files. Subagents access the blackboard via inherited or allow-listed MCP tools; the `tools` whitelist doubles as a second enforcement layer over `canMutate`.
+**Packaging:** a Claude Code **plugin** bundling the MCP server (`.mcp.json`), three subagents (`.claude/agents/`), and an `/audit` command. Minimal path alternative: `claude mcp add --transport stdio whipple3 -- npx whipple3 mcp` + drop agent files. Subagents access the blackboard via inherited or allow-listed MCP tools; the `tools` whitelist doubles as a second enforcement layer over `canMutate`.
 
 **Demo script:** `/audit` on a real repo → *scanner* posts `CodeFile` nodes (ACL: can post nothing else) → three *auditors* in parallel, each `blackboard_claim`s pending files (zero duplicate work; leases visible in Studio, colored per agent) → `SecurityIssue` nodes accumulate → *fixer* reads issues; fixes pass a HITL approval gate → `distill()` → `report.md`; graph purged; trace log retained. The viral moment is Studio: a **live graph of what your subagents are doing right now.**
 
@@ -199,7 +199,7 @@ TypeScript strict, **ESM-only, Node ≥ 20** (Deno/Bun consume npm; publishing f
 - **Emit, don't store:** core emits the full event taxonomy (§7) with causality fields; Phase 2 adds an OTel GenAI adapter (→ Langfuse/Jaeger/console). Studio consumes the same stream (SSE; Yjs considered later for engine↔studio sync only).
 - **Replay is the eval primitive.** Three tiers:
   1. **Deterministic replay tests** — session logs as fixtures + VCR-style LLM record/replay; coordination regression tests in CI with zero API calls.
-  2. **Trajectory assertions over typed state** — the novel tier: `expect(final).toSatisfy(CodeFile.all({ status: 'audited' }))`, `expect(trace).maxHops(5)`, `expect(session.cost).lessThan(x)`. Existing eval tools judge text; arai judges structured state trajectories.
+  2. **Trajectory assertions over typed state** — the novel tier: `expect(final).toSatisfy(CodeFile.all({ status: 'audited' }))`, `expect(trace).maxHops(5)`, `expect(session.cost).lessThan(x)`. Existing eval tools judge text; whipple3 judges structured state trajectories.
   3. **LLM-as-judge on distilled output** — commodity; pluggable scorer interface, integrate rather than build.
 
 ## 12. Roadmap
@@ -211,7 +211,7 @@ TypeScript strict, **ESM-only, Node ≥ 20** (Deno/Bun consume npm; publishing f
 
 **Phase 1.5:** run the same server against Codex CLI, Gemini CLI, opencode — turn "works with whatever agent you already run" from a claim into a recording.
 
-**Phase 2:** push-mode runtime (scheduler: queues, concurrency caps, batching, retries, quiescence) · UDS transport · `SandboxProvider` (dockerode → E2B/Daytona/NanoClaw-pattern adapters) · `ModelProvider` (Vercel AI SDK v5 → OpenRouter/any provider — BYOM) · OTel + Langfuse adapters · `@arai/evals` · taint/provenance labels · published benchmark harness vs. LangGraph and vanilla subagents.
+**Phase 2:** push-mode runtime (scheduler: queues, concurrency caps, batching, retries, quiescence) · UDS transport · `SandboxProvider` (dockerode → E2B/Daytona/NanoClaw-pattern adapters) · `ModelProvider` (Vercel AI SDK v5 → OpenRouter/any provider — BYOM) · OTel + Langfuse adapters · `@whipple3/evals` · taint/provenance labels · published benchmark harness vs. LangGraph and vanilla subagents.
 
 ## 13. ADR index
 
@@ -232,6 +232,6 @@ TypeScript strict, **ESM-only, Node ≥ 20** (Deno/Bun consume npm; publishing f
 
 ## 15. Open TODOs before repo creation
 
-- [x] Package name: `arai` verified free on npm (2026-08-10). Still open: npm org + GitHub org/user availability (blocked from sandbox; 10-second check), and full legal name in LICENSE.
+- [x] Package name: `whipple3` verified free on npm (2026-08-10). Still open: npm org + GitHub org/user availability (blocked from sandbox; 10-second check), and full legal name in LICENSE.
 - [ ] Pin minimum Claude Code version for the plugin.
 - [ ] Choose GitHub org/repo name; enable Actions matrix.

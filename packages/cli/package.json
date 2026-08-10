@@ -1,11 +1,11 @@
 {
-  "name": "arai",
+  "name": "whipple3",
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "arai — a typed, ephemeral, event-sourced blackboard for coordinating AI agents.",
+  "description": "whipple3 — a typed, ephemeral, event-sourced blackboard for coordinating AI agents.",
   "bin": {
-    "arai": "./dist/main.js"
+    "whipple3": "./dist/main.js"
   },
   "exports": {
     ".": {
@@ -20,9 +20,9 @@
     "build": "tsup"
   },
   "dependencies": {
-    "@arai/core": "workspace:*",
-    "@arai/log": "workspace:*",
-    "@arai/transport-mcp": "workspace:*",
+    "@whipple3/core": "workspace:*",
+    "@whipple3/log": "workspace:*",
+    "@whipple3/transport-mcp": "workspace:*",
     "citty": "^0.1.6"
   }
 }

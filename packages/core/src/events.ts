@@ -18,7 +18,7 @@ export interface EventMeta {
  * Full taxonomy reserved from day one so observability and evals are adapters later,
  * not a rewrite. v0.1 emits the subset it can observe. (SPEC §7)
  */
-export type AraiEvent =
+export type Whipple3Event =
   | { readonly type: "graph.mutation"; readonly mutation: Mutation }
   | { readonly type: "claim.acquired"; readonly nodeId: string; readonly agentId: string }
   | { readonly type: "claim.released"; readonly nodeId: string; readonly agentId: string }
@@ -45,5 +45,5 @@ export type AraiEvent =
 export interface LogRecord {
   readonly seq: number;
   readonly meta: EventMeta;
-  readonly event: AraiEvent;
+  readonly event: Whipple3Event;
 }

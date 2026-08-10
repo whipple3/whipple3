@@ -1,5 +1,5 @@
 {
   "mcpServers": {
-    "arai": { "command": "npx", "args": ["arai", "mcp"] }
+    "whipple3": { "command": "npx", "args": ["whipple3", "mcp"] }
   }
 }

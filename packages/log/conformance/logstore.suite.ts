@@ -1,5 +1,5 @@
-import type { AraiEvent, EventMeta } from "@arai/core";
-import { agentId, sessionId, txId } from "@arai/core";
+import type { EventMeta, Whipple3Event } from "@whipple3/core";
+import { agentId, sessionId, txId } from "@whipple3/core";
 import { describe, expect, it } from "vitest";
 import type { LogStore } from "../src/port.js";
 
@@ -12,7 +12,7 @@ const meta = (n: number): EventMeta => ({
   correlationId: txId("tx0"),
 });
 
-const ev: AraiEvent = { type: "session.started", task: "conformance" };
+const ev: Whipple3Event = { type: "session.started", task: "conformance" };
 
 export const runLogStoreConformance = (
   name: string,

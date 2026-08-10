@@ -1,11 +1,11 @@
-import type { AraiEvent, EventMeta, LogRecord } from "@arai/core";
+import type { EventMeta, LogRecord, Whipple3Event } from "@whipple3/core";
 import type { LogStore } from "./port.js";
 
 export const createMemoryLog = (): LogStore => {
   const records: LogRecord[] = [];
   const listeners = new Set<(r: LogRecord) => void>();
   return {
-    append(meta: EventMeta, event: AraiEvent): Promise<LogRecord> {
+    append(meta: EventMeta, event: Whipple3Event): Promise<LogRecord> {
       const record: LogRecord = { seq: records.length, meta, event };
       records.push(record);
       for (const l of listeners) l(record);

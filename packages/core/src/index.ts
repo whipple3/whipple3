@@ -1,8 +1,8 @@
-/** The only public gate of @arai/core. No deep imports. (SPEC §5) */
+/** The only public gate of @whipple3/core. No deep imports. (SPEC §5) */
 
 export type { AclError, AclPolicy } from "./acl.js";
 export { checkAcl } from "./acl.js";
-export type { AraiEvent, EventMeta, LogRecord } from "./events.js";
+export type { EventMeta, LogRecord, Whipple3Event } from "./events.js";
 export type { AgentId, Brand, EdgeId, NodeId, SessionId, TxId, Version } from "./ids.js";
 export {
   agentId,

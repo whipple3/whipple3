@@ -23,8 +23,8 @@ import {
   type TxId,
   type Version,
   version,
-} from "@arai/core";
-import type { LogStore } from "@arai/log";
+} from "@whipple3/core";
+import type { LogStore } from "@whipple3/log";
 import type { z } from "zod";
 import { toolInputs } from "./tools.js";
 

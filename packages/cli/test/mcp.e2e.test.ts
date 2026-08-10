@@ -53,8 +53,8 @@ const rpcClient = (child: ChildProcessWithoutNullStreams) => {
   };
 };
 
-describe("arai mcp — end-to-end over stdio (CLAUDE.md W1 §4)", () => {
-  const cwd = mkdtempSync(join(tmpdir(), "arai-e2e-"));
+describe("whipple3 mcp — end-to-end over stdio (CLAUDE.md W1 §4)", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "whipple3-e2e-"));
   let child: ChildProcessWithoutNullStreams;
   afterAll(() => child.kill());
 
@@ -68,7 +68,7 @@ describe("arai mcp — end-to-end over stdio (CLAUDE.md W1 §4)", () => {
       capabilities: {},
       clientInfo: { name: "e2e", version: "0.0.0" },
     });
-    expect(init.result?.serverInfo?.name).toBe("arai");
+    expect(init.result?.serverInfo?.name).toBe("whipple3");
     client.notify("notifications/initialized");
 
     const post = await client.request("tools/call", {
@@ -82,11 +82,11 @@ describe("arai mcp — end-to-end over stdio (CLAUDE.md W1 §4)", () => {
     if (text === undefined) throw new Error("tool answered without content");
     expect(JSON.parse(text)).toMatchObject({ ok: true, value: { version: 1 } });
 
-    const logDir = join(cwd, ".arai");
+    const logDir = join(cwd, ".whipple3");
     const logFile = readdirSync(logDir).find(
       (f) => f.startsWith("session-") && f.endsWith(".ndjson"),
     );
-    if (logFile === undefined) throw new Error(".arai/session-*.ndjson not written");
+    if (logFile === undefined) throw new Error(".whipple3/session-*.ndjson not written");
     const lines = readFileSync(join(logDir, logFile), "utf8").trim().split("\n");
     expect(lines).toHaveLength(1);
     const record = JSON.parse(lines[0] ?? "") as {

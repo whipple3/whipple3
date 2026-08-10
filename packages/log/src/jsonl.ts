@@ -1,5 +1,5 @@
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
-import type { AraiEvent, EventMeta, LogRecord } from "@arai/core";
+import type { EventMeta, LogRecord, Whipple3Event } from "@whipple3/core";
 import type { LogStore } from "./port.js";
 
 /**
@@ -11,7 +11,7 @@ export const createJsonlLog = (path: string): LogStore => {
   const listeners = new Set<(r: LogRecord) => void>();
   let seq = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter(Boolean).length : 0;
   return {
-    append(meta: EventMeta, event: AraiEvent): Promise<LogRecord> {
+    append(meta: EventMeta, event: Whipple3Event): Promise<LogRecord> {
       const record: LogRecord = { seq, meta, event };
       seq += 1;
       appendFileSync(path, `${JSON.stringify(record)}\n`, "utf8");

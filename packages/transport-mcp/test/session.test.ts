@@ -1,5 +1,5 @@
-import { type AclPolicy, nodeId, sessionId, txId } from "@arai/core";
-import { createMemoryLog } from "@arai/log";
+import { type AclPolicy, nodeId, sessionId, txId } from "@whipple3/core";
+import { createMemoryLog } from "@whipple3/log";
 import { describe, expect, it } from "vitest";
 import { createSession } from "../src/session.js";
 

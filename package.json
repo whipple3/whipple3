@@ -1,5 +1,5 @@
 {
-  "name": "arai-monorepo",
+  "name": "whipple3-monorepo",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.9",

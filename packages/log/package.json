@@ -1,5 +1,5 @@
 {
-  "name": "@arai/log",
+  "name": "@whipple3/log",
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@arai/core": "workspace:*"
+    "@whipple3/core": "workspace:*"
   },
   "publishConfig": {
     "exports": {

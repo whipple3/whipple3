@@ -1,6 +1,6 @@
-import { ok, type Result, sessionId, txId } from "@arai/core";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { ok, type Result, sessionId, txId } from "@whipple3/core";
 import { ulid } from "ulid";
 import type { Session, SessionDeps } from "./session.js";
 import { toolInputs } from "./tools.js";
@@ -16,7 +16,7 @@ const asToolResult = (r: Result<unknown, unknown>) => ({
  * object because its own boundary is `unknown` (tests and future transports call it directly).
  */
 export const createServer = (session: Session): McpServer => {
-  const server = new McpServer({ name: "arai", version: "0.0.0" });
+  const server = new McpServer({ name: "whipple3", version: "0.0.0" });
 
   server.registerTool(
     "blackboard_post",
