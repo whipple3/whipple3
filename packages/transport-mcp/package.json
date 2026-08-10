@@ -1,8 +1,30 @@
 {
   "name": "@whipple3/transport-mcp",
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "whipple3's agent-facing surface: the six blackboard tools as Zod schemas, the session shell (parse → ACL → apply → append), and a stdio MCP server.",
+  "keywords": [
+    "ai-agents",
+    "multi-agent",
+    "blackboard",
+    "coordination",
+    "event-sourcing",
+    "mcp",
+    "model-context-protocol",
+    "mcp-server"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/whipple3/whipple3#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whipple3/whipple3.git",
+    "directory": "packages/transport-mcp"
+  },
+  "bugs": "https://github.com/whipple3/whipple3/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
@@ -20,6 +42,7 @@
     "zod": "^4.0.0"
   },
   "publishConfig": {
+    "access": "public",
     "exports": {
       ".": {
         "types": "./dist/index.d.ts",

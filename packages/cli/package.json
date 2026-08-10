@@ -1,9 +1,30 @@
 {
   "name": "whipple3",
-  "version": "0.0.0",
-  "type": "module",
-  "license": "MIT",
+  "version": "0.1.0",
   "description": "whipple3 — a typed, ephemeral, event-sourced blackboard for coordinating AI agents.",
+  "keywords": [
+    "ai-agents",
+    "multi-agent",
+    "blackboard",
+    "coordination",
+    "event-sourcing",
+    "mcp",
+    "mcp-server",
+    "claude-code",
+    "cli"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/whipple3/whipple3#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whipple3/whipple3.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/whipple3/whipple3/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
     "whipple3": "./dist/main.js"
   },

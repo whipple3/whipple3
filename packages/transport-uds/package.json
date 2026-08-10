@@ -1,8 +1,28 @@
 {
   "name": "@whipple3/transport-uds",
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "whipple3's shared-state backend transport: one board server on a Unix domain socket, per-agent client connections with identity bound at connect.",
+  "keywords": [
+    "ai-agents",
+    "multi-agent",
+    "blackboard",
+    "coordination",
+    "event-sourcing",
+    "unix-socket"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/whipple3/whipple3#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whipple3/whipple3.git",
+    "directory": "packages/transport-uds"
+  },
+  "bugs": "https://github.com/whipple3/whipple3/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
@@ -21,6 +41,7 @@
     "@whipple3/log": "workspace:*"
   },
   "publishConfig": {
+    "access": "public",
     "exports": {
       ".": {
         "types": "./dist/index.d.ts",
