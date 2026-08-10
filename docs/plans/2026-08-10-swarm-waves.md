@@ -49,8 +49,9 @@ path, no exceptions.
 next→claim→update loops; assert zero duplicate valid claims, zero lost updates, every
 `ALREADY_CLAIMED` names the true holder; lease abandonment (claim, never release, expiry
 readmits). fast-check property over arbitrary claim/release/expiry interleavings.
-Read decision **D2** first — if Michael rules "non-reentrant claims", this package also
-owns the `CLAIM_NODE` case in `packages/core/src/mutation.ts`.
+Decision **D2** is ruled (2026-08-10): **renewal stays** — a same-agent re-claim extends
+the lease and is correct behavior; cover it with a test as spec, don't "fix" it. This
+package owns NO src paths; a genuine core bug goes in the report, not in a patch.
 *Done:* repeated runs green and deterministic; property suite in CI.
 
 **W1-B — DSL literal inference.** `defineNode` / `defineEdge` / `when()` carry full
@@ -62,8 +63,8 @@ core's ~1,000-line budget — this is the type-gymnastics allowance, spend it he
 **W1-C — Studio skeleton.** Inside `packages/studio` only (no cli wiring this wave —
 cli is unowned in Wave 1 on purpose): a dev server that tails a given `.ndjson` via
 `ReadonlyLog`, streams records over SSE, and renders a live sigma.js graph (nodes appear
-on `graph.mutation`, basic status coloring). Blocked on decision **D3** (dependencies) —
-get the OK before `pnpm add`.
+on `graph.mutation`, basic status coloring). Decision **D3** is approved (2026-08-10):
+`vite`, `sigma`, `graphology` may be added — to `packages/studio` only.
 *Done:* point it at a log file from a real `whipple3 mcp` run and watch the graph appear.
 
 **W1-D — ADRs + docs.** Reconstruct the decision records the SPEC references (grep
@@ -102,7 +103,9 @@ triggered by the lifetime policy, never an implicit end-of-session effect.
 
 ---
 
-## Decisions needed from Michael (blocking marked packages only)
+## Decisions — RULED by Michael, 2026-08-10
+
+- **D1 ✅ APPROVED** (W2-B is green-lit) — **D2 ✅ keep renewal** — **D3 ✅ APPROVED**.
 
 - **D1 — shared-state topology for the real-host demo.** Claude Code multiplexes all
   subagents over ONE stdio connection, so today they all share identity `main`; and
