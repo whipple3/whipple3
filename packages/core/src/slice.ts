@@ -1,4 +1,5 @@
 import type { NodeId } from "./ids.js";
+import type { Trigger } from "./schema.js";
 import type { EdgeRecord, GraphState, NodeRecord } from "./state.js";
 
 export interface Slice {
@@ -11,6 +12,27 @@ export interface Slice {
  * dispatch — agents cannot read beyond it. (SPEC §4.7)
  * v0.1: BFS neighborhood. TODO(W1+): role-declared slices in the schema.
  */
+/**
+ * The pull-mode work queue: `when()` triggers compile to exactly this query. (SPEC §4.4)
+ * A valid (unexpired) claim hides a node from every agent — holders already have their work.
+ */
+export const availableWork = (
+  state: GraphState,
+  trigger: Trigger,
+  now: number,
+): readonly NodeRecord[] => {
+  const matches = (node: NodeRecord): boolean =>
+    node.label === trigger.label &&
+    Object.entries(trigger.match).every(([key, value]) => Object.is(node.props[key], value));
+
+  const claimed = (node: NodeRecord): boolean => {
+    const claim = state.claims.get(node.id);
+    return claim !== undefined && claim.expiresAt > now;
+  };
+
+  return [...state.nodes.values()].filter((n) => matches(n) && !claimed(n));
+};
+
 export const neighborhood = (state: GraphState, root: NodeId, depth: number): Slice => {
   const seen = new Set<NodeId>();
   let frontier: readonly NodeId[] = state.nodes.has(root) ? [root] : [];

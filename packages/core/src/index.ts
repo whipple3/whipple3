@@ -22,6 +22,6 @@ export type { EdgeType, NodeType, Trigger } from "./schema.js";
 export { defineEdge, defineNode } from "./schema.js";
 
 export type { Slice } from "./slice.js";
-export { neighborhood } from "./slice.js";
+export { availableWork, neighborhood } from "./slice.js";
 export type { ClaimRecord, EdgeRecord, GraphState, NodeRecord } from "./state.js";
 export { emptyState } from "./state.js";
