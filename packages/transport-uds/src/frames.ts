@@ -22,7 +22,8 @@ export const clientFrame = z.discriminatedUnion("kind", [
     kind: z.literal("req"),
     id: z.number().int().nonnegative(),
     op: z.enum(OPS),
-    input: z.unknown(),
+    /** Optional: status carries no input; the session re-parses whatever arrives. */
+    input: z.unknown().optional(),
   }),
 ]);
 export type ClientFrame = z.output<typeof clientFrame>;

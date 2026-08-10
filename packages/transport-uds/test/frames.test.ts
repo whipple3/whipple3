@@ -15,6 +15,10 @@ describe("client frames — hello then requests (ADR-007 at the socket layer)", 
     }
   });
 
+  it("accepts a request without input — status needs none", () => {
+    expect(clientFrame.safeParse({ kind: "req", id: 5, op: "status" }).success).toBe(true);
+  });
+
   it("rejects an unknown op, a spoofed hello version, and a foreign kind", () => {
     expect(clientFrame.safeParse({ kind: "req", id: 1, op: "purge" }).success).toBe(false);
     expect(clientFrame.safeParse({ kind: "hello", v: 2, agentId: "a" }).success).toBe(false);
