@@ -1,0 +1,5 @@
+{
+  "name": "whipple3",
+  "version": "0.1.0",
+  "description": "Shared typed blackboard for Claude Code subagents: /audit demo with per-agent identity over `whipple3 serve` and a human-approval gate on the fixer."
+}

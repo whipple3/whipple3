@@ -1,5 +1,64 @@
 {
   "mcpServers": {
-    "whipple3": { "command": "npx", "args": ["whipple3", "mcp"] }
+    "whipple3-scanner": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "whipple3",
+        "mcp",
+        "--board",
+        "${CLAUDE_PROJECT_DIR}/.whipple3/board.sock",
+        "--agent",
+        "scanner"
+      ]
+    },
+    "whipple3-auditor-1": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "whipple3",
+        "mcp",
+        "--board",
+        "${CLAUDE_PROJECT_DIR}/.whipple3/board.sock",
+        "--agent",
+        "auditor-1"
+      ]
+    },
+    "whipple3-auditor-2": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "whipple3",
+        "mcp",
+        "--board",
+        "${CLAUDE_PROJECT_DIR}/.whipple3/board.sock",
+        "--agent",
+        "auditor-2"
+      ]
+    },
+    "whipple3-auditor-3": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "whipple3",
+        "mcp",
+        "--board",
+        "${CLAUDE_PROJECT_DIR}/.whipple3/board.sock",
+        "--agent",
+        "auditor-3"
+      ]
+    },
+    "whipple3-fixer": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "whipple3",
+        "mcp",
+        "--board",
+        "${CLAUDE_PROJECT_DIR}/.whipple3/board.sock",
+        "--agent",
+        "fixer"
+      ]
+    }
   }
 }
