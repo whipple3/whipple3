@@ -62,3 +62,48 @@ export const defineEdge = <L extends string, F extends string, T extends string>
   label: L,
   ends: { readonly from: { readonly label: F }; readonly to: { readonly label: T } },
 ): EdgeType<L, F, T> => ({ kind: "edge", label, from: ends.from.label, to: ends.to.label });
+
+/**
+ * Role-declared slices (SPEC §4.7, ROADMAP Stage 2): a role's slice shape is pure DATA —
+ * root label plus a tree of follow rules — never a function, never a query language.
+ * F/T generics exist only so anchoring is checked at the call site; they erase to strings.
+ */
+export interface FollowRule<F extends string = string, T extends string = string> {
+  readonly edge: string;
+  readonly from: F;
+  readonly to: T;
+  /** Max consecutive hops along this one edge label (recursive edges want > 1). */
+  readonly hops: number;
+  /** Rules continuing from the nodes this rule reached. ("then" would make a thenable.) */
+  readonly next: readonly FollowRule[];
+}
+
+export interface SliceDecl<R extends string = string> {
+  readonly kind: "slice";
+  readonly root: R;
+  readonly follow: readonly FollowRule[];
+}
+
+/**
+ * The slice-decl typo case: an edge that touches no label in A cannot attach there, at
+ * compile time. Checked locally per call — anchoring is to the DECLARED endpoint labels,
+ * so a rule anchored only to its parent's near side can be legal yet reach nothing.
+ */
+type Anchored<A extends string> = FollowRule<A, string> | FollowRule<string, A>;
+
+/** NoInfer: labels are inferred from the node/edge types ONLY, never from the rules. */
+export const follow = <E extends string, F extends string, T extends string>(
+  via: EdgeType<E, F, T>,
+  opts?: { readonly hops?: number; readonly next?: readonly NoInfer<Anchored<F | T>>[] },
+): FollowRule<F, T> => ({
+  edge: via.label,
+  from: via.from,
+  to: via.to,
+  hops: opts?.hops ?? 1,
+  next: opts?.next ?? [],
+});
+
+export const defineSlice = <R extends string>(
+  root: { readonly kind: "node"; readonly label: R },
+  rules: readonly NoInfer<Anchored<R>>[],
+): SliceDecl<R> => ({ kind: "slice", root: root.label, follow: rules });
