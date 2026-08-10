@@ -3,6 +3,14 @@
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": { "enabled": true, "rules": { "recommended": true } },
   "files": {
-    "includes": ["src/**", "test/**", "*.json", "*.md", "!**/dist", "!**/*.tsbuildinfo"]
+    "includes": [
+      "src/**",
+      "test/**",
+      "*.json",
+      "*.md",
+      "!**/dist",
+      "!**/*.tsbuildinfo",
+      "!test/fixtures/**"
+    ]
   }
 }
