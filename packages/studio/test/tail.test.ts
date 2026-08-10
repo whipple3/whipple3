@@ -1,33 +1,11 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  agentId,
-  type EventMeta,
-  type LogRecord,
-  nodeId,
-  sessionId,
-  txId,
-  type Whipple3Event,
-} from "@whipple3/core";
+import type { LogRecord } from "@whipple3/core";
 import { createJsonlLog, type ReadonlyLog } from "@whipple3/log";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type LogTail, startTail } from "../src/tail.js";
-
-const meta = (n: number): EventMeta => ({
-  txId: txId(`tx-${n}`),
-  sessionId: sessionId("s1"),
-  agentId: agentId("writer"),
-  principal: null,
-  ts: n,
-  causationId: null,
-  correlationId: txId("corr"),
-});
-
-const addNode = (n: number): Whipple3Event => ({
-  type: "graph.mutation",
-  mutation: { kind: "ADD_NODE", id: nodeId(`n${n}`), label: "file", props: {} },
-});
+import { addNodeEvent, testMeta } from "./fixtures.js";
 
 const dirs: string[] = [];
 const tmpLogPath = (): string => {
@@ -50,8 +28,8 @@ describe("startTail", () => {
   it("replays records already in the log when it starts", async () => {
     const path = tmpLogPath();
     const writer = createJsonlLog(path);
-    await writer.append(meta(0), addNode(0));
-    await writer.append(meta(1), addNode(1));
+    await writer.append(testMeta(0), addNodeEvent(0));
+    await writer.append(testMeta(1), addNodeEvent(1));
 
     const tail = tracked(startTail(createJsonlLog(path), 5));
 
@@ -66,7 +44,7 @@ describe("startTail", () => {
     const seen: LogRecord[] = [];
     tail.subscribe((r) => seen.push(r));
 
-    await writer.append(meta(0), addNode(0));
+    await writer.append(testMeta(0), addNodeEvent(0));
 
     await vi.waitFor(() => expect(seen).toHaveLength(1));
     expect(seen[0]?.event.type).toBe("graph.mutation");
@@ -80,7 +58,7 @@ describe("startTail", () => {
     expect(tail.records()).toHaveLength(0);
 
     const lateWriter = createJsonlLog(path);
-    await lateWriter.append(meta(0), addNode(0));
+    await lateWriter.append(testMeta(0), addNodeEvent(0));
 
     await vi.waitFor(() => expect(tail.records()).toHaveLength(1));
   });
@@ -93,7 +71,7 @@ describe("startTail", () => {
     const unsubscribe = tail.subscribe((r) => seen.push(r));
     unsubscribe();
 
-    await writer.append(meta(0), addNode(0));
+    await writer.append(testMeta(0), addNodeEvent(0));
 
     await vi.waitFor(() => expect(tail.records()).toHaveLength(1));
     expect(seen).toHaveLength(0);
@@ -102,12 +80,12 @@ describe("startTail", () => {
   it("stops polling after stop()", async () => {
     const path = tmpLogPath();
     const writer = createJsonlLog(path);
-    await writer.append(meta(0), addNode(0));
+    await writer.append(testMeta(0), addNodeEvent(0));
     const tail = tracked(startTail(createJsonlLog(path), 5));
     await vi.waitFor(() => expect(tail.records()).toHaveLength(1));
 
     tail.stop();
-    await writer.append(meta(1), addNode(1));
+    await writer.append(testMeta(1), addNodeEvent(1));
     await new Promise((r) => setTimeout(r, 30));
 
     expect(tail.records()).toHaveLength(1);
@@ -119,7 +97,9 @@ describe("startTail", () => {
       read: (fromSeq = 0) => {
         calls += 1;
         if (calls === 1) return Promise.reject(new Error("torn line"));
-        return Promise.resolve([{ seq: 0, meta: meta(0), event: addNode(0) }].slice(fromSeq));
+        return Promise.resolve(
+          [{ seq: 0, meta: testMeta(0), event: addNodeEvent(0) }].slice(fromSeq),
+        );
       },
       subscribe: () => () => {},
     };

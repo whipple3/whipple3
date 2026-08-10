@@ -1,33 +1,11 @@
 import { createServer, type Server } from "node:http";
-import {
-  agentId,
-  type EventMeta,
-  type LogRecord,
-  nodeId,
-  sessionId,
-  txId,
-  type Whipple3Event,
-} from "@whipple3/core";
+import type { LogRecord } from "@whipple3/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sseHandler } from "../src/sse.js";
 import type { LogTail } from "../src/tail.js";
+import { addNodeEvent, recordOf } from "./fixtures.js";
 
-const meta = (n: number): EventMeta => ({
-  txId: txId(`tx-${n}`),
-  sessionId: sessionId("s1"),
-  agentId: agentId("writer"),
-  principal: null,
-  ts: n,
-  causationId: null,
-  correlationId: txId("corr"),
-});
-
-const addNode = (n: number): Whipple3Event => ({
-  type: "graph.mutation",
-  mutation: { kind: "ADD_NODE", id: nodeId(`n${n}`), label: "file", props: {} },
-});
-
-const record = (seq: number): LogRecord => ({ seq, meta: meta(seq), event: addNode(seq) });
+const record = (seq: number): LogRecord => recordOf(seq, addNodeEvent(seq));
 
 const stubTail = (initial: readonly LogRecord[]) => {
   const listeners = new Set<(r: LogRecord) => void>();
