@@ -1,8 +1,31 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { createJsonlLog } from "@whipple3/log";
-import { createSession, liveSessionDeps } from "@whipple3/transport-mcp";
+import {
+  createSession,
+  liveSessionDeps,
+  type PolicyConfig,
+  parsePolicy,
+} from "@whipple3/transport-mcp";
 import { startBoardServer } from "@whipple3/transport-uds";
 import { defineCommand } from "citty";
+
+/** Process edge: a bad policy file must stop the board before it serves anyone. */
+const loadPolicy = (path: string): PolicyConfig => {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(path, "utf8"));
+  } catch (e) {
+    console.error(`whipple3 serve: cannot read policy ${path}: ${String(e)}`);
+    process.exit(1);
+  }
+  const parsed = parsePolicy(raw);
+  if (!parsed.ok) {
+    for (const issue of parsed.error.issues)
+      console.error(`whipple3 serve: policy ${path}: ${issue.path}: ${issue.message}`);
+    process.exit(1);
+  }
+  return parsed.value;
+};
 
 /**
  * The shared-state backend (ADR-005 amendment, ruling D1): ONE process owns the
@@ -19,15 +42,23 @@ export const serve = defineCommand({
       description: "Socket path the board listens on; mcp proxies dial it via --board.",
       default: ".whipple3/board.sock",
     },
+    policy: {
+      type: "string",
+      description:
+        "JSON policy file: { acl?: {agent: {write, read}}, slices?: {agent: SliceDecl} }. " +
+        "Without it the host's tool allowlist is the only gate.",
+    },
   },
   async run({ args }) {
+    const policy: PolicyConfig =
+      args.policy !== undefined ? loadPolicy(args.policy) : { acl: null };
     mkdirSync(".whipple3", { recursive: true });
     const stamp = new Date().toISOString().replaceAll(":", "-");
     const logPath = `.whipple3/session-${stamp}.ndjson`;
     const session = createSession({
       log: createJsonlLog(logPath),
-      // v0.1: the host's tool allowlist is the gate; schema-level ACL config arrives with the plugin demo.
-      acl: null,
+      acl: policy.acl,
+      slices: policy.slices,
       ...liveSessionDeps(),
     });
     const server = await startBoardServer({ session, socketPath: args.socket });

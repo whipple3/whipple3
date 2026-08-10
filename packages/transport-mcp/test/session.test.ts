@@ -1,15 +1,27 @@
-import { type AclPolicy, agentId, nodeId, principal, sessionId, txId } from "@whipple3/core";
+import {
+  type AclPolicy,
+  agentId,
+  nodeId,
+  principal,
+  type SliceDecl,
+  sessionId,
+  txId,
+} from "@whipple3/core";
 import { createMemoryLog } from "@whipple3/log";
 import { describe, expect, it } from "vitest";
 import { createSession, type Session } from "../src/session.js";
 
-const makeSession = (acl: AclPolicy | null = null) => {
+const makeSession = (
+  acl: AclPolicy | null = null,
+  slices: Readonly<Record<string, SliceDecl>> | undefined = undefined,
+) => {
   let now = 0;
   let n = 0;
   const log = createMemoryLog();
   const session = createSession({
     log,
     acl,
+    slices,
     sessionId: sessionId("s1"),
     principal: principal("michael"),
     now: () => now,
@@ -275,11 +287,55 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
   it("read is policy-filtered: a reader without CodeFile access cannot see it via a neighbor", async () => {
     const { as } = makeSession(demoAcl);
     await seedIssueGraph(as);
-    const r = await as("reporter").read({ root: "i1", depth: 2 });
+    const r = await as("reporter").read({ root: "i1" });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.nodes.map((n) => n.id)).toEqual(["i1"]);
       expect(r.value.edges).toEqual([]);
+    }
+  });
+
+  it("a declared agent reads exactly its role slice — depth is the engine's, never the agent's", async () => {
+    // fixer's slice: CodeFile root, one HAS_ISSUE hop to SecurityIssue. The Report node
+    // hangs one edge further and is readable by ACL — the DECLARATION excludes it.
+    const acl: AclPolicy = {
+      scanner: { write: ["CodeFile"], read: ["CodeFile"] },
+      auditor: {
+        write: ["SecurityIssue", "HAS_ISSUE", "Report", "SUMMARIZED_IN"],
+        read: ["CodeFile", "SecurityIssue", "HAS_ISSUE", "Report", "SUMMARIZED_IN"],
+      },
+      fixer: {
+        write: [],
+        read: ["CodeFile", "SecurityIssue", "HAS_ISSUE", "Report", "SUMMARIZED_IN"],
+      },
+    };
+    const slices = {
+      fixer: {
+        kind: "slice",
+        root: "CodeFile",
+        follow: [{ edge: "HAS_ISSUE", from: "CodeFile", to: "SecurityIssue", hops: 1, next: [] }],
+      },
+    } as const;
+    const { as } = makeSession(acl, slices);
+    await seedIssueGraph(as);
+    await as("auditor").post({
+      mutation: { kind: "ADD_NODE", id: "r1", label: "Report", props: {} },
+    });
+    await as("auditor").post({
+      mutation: { kind: "ADD_EDGE", id: "e2", label: "SUMMARIZED_IN", from: "i1", to: "r1" },
+    });
+
+    const declared = await as("fixer").read({ root: "f1", depth: 5 }); // stray depth is stripped
+    expect(declared.ok).toBe(true);
+    if (declared.ok) {
+      expect(declared.value.nodes.map((n) => n.id).sort()).toEqual(["f1", "i1"]);
+      expect(declared.value.edges.map((e) => e.id)).toEqual(["e1"]);
+    }
+
+    const undeclared = await as("auditor").read({ root: "f1" }); // fallback: default neighborhood
+    expect(undeclared.ok).toBe(true);
+    if (undeclared.ok) {
+      expect(undeclared.value.nodes.map((n) => n.id).sort()).toEqual(["f1", "i1", "r1"]);
     }
   });
 
@@ -357,19 +413,21 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     expect(interleaved.ok && interleaved.value.version).toBe(3);
   });
 
-  it("status counts nodes, edges and only unexpired claims", async () => {
+  it("status is async — the one shape every transport, including a socket proxy, can honor", async () => {
     const { as, tick } = makeSession();
     const scanner = as("scanner");
     await scanner.post(fileNode("a.ts", "f1"));
     await scanner.post(fileNode("b.ts", "f2"));
     await as("auditor-1").claim({ id: "f1", ttlMs: 1000 });
-    expect(scanner.status()).toEqual({
+    const pending = scanner.status();
+    expect(pending).toBeInstanceOf(Promise);
+    expect(await pending).toEqual({
       nodes: 2,
       edges: 0,
       activeClaims: 1,
       byLabel: { CodeFile: 2 },
     });
     tick(2000);
-    expect(scanner.status().activeClaims).toBe(0);
+    expect((await scanner.status()).activeClaims).toBe(0);
   });
 });

@@ -16,7 +16,7 @@ Your task prompt states your mode: PROPOSE or APPLY. No mode stated = PROPOSE.
 
 1. `blackboard_next` with `label` `SecurityIssue`, `match` `{ "status": "open" }`.
    If `node` is `null`, go to step 4.
-2. `blackboard_read` with `root` = the issue id, `depth` 2 — this gives you the issue and
+2. `blackboard_read` with `root` = the issue id — the engine scopes the slice; this gives you the issue and
    its CodeFile. Read the file at the issue's `props.path` and design the MINIMAL fix.
 3. Post the proposal, two `blackboard_post` calls:
    - ADD_NODE — `id`: `fix:<issue id without the "issue:" prefix>`, `label`: `Fix`,
@@ -34,7 +34,7 @@ Your task prompt states your mode: PROPOSE or APPLY. No mode stated = PROPOSE.
 Your task prompt names approved fix ids (and possibly rejected ones). Fix ids not named
 do not exist for you.
 
-1. For each APPROVED fix id: `blackboard_read` with `root` = the fix id, `depth` 2; Read
+1. For each APPROVED fix id: `blackboard_read` with `root` = the fix id; Read
    the file; make the minimal Edit that implements the recorded `approach`. Expect a
    permission prompt on every Edit — if the human denies it, treat that fix as rejected.
 2. After a successful edit: UPDATE_NODE the Fix to `status` `"applied"` and its

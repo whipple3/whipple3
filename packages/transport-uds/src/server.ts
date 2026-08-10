@@ -54,7 +54,7 @@ const answer = async (conn: AgentConnection, req: ReqFrame): Promise<ServerFrame
     case "read":
       return { kind: "res", id: req.id, result: await conn.read(req.input) };
     case "status":
-      return { kind: "res", id: req.id, result: conn.status() };
+      return { kind: "res", id: req.id, result: await conn.status() };
     default: {
       const exhaustive: never = req.op;
       throw new Error(`unreachable op ${String(exhaustive)}`);

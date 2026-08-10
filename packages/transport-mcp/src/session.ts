@@ -23,6 +23,8 @@ import {
   readableNeighborhood,
   type SessionId,
   type Slice,
+  type SliceDecl,
+  sliceFor,
   type TxId,
   type Version,
   version,
@@ -30,12 +32,27 @@ import {
 import type { LogStore } from "@whipple3/log";
 import type { z } from "zod";
 import { type BoardLifetime, checkPurge, type PurgeError } from "./lifetime.js";
+import { type ParseError, parseWith } from "./parse.js";
 import { toolInputs } from "./tools.js";
 
-export interface ParseError {
-  readonly code: "PARSE_ERROR";
-  readonly issues: readonly { readonly path: string; readonly message: string }[];
-}
+/** Engine-owned read scope for agents without a declared slice. Agents never choose. */
+const DEFAULT_READ_DEPTH = 2;
+
+const declLabels = (decl: SliceDecl): readonly string[] => {
+  const labels = new Set<string>([decl.root]);
+  const walk = (rules: SliceDecl["follow"]): void => {
+    for (const r of rules) {
+      labels.add(r.edge);
+      labels.add(r.from);
+      labels.add(r.to);
+      walk(r.next);
+    }
+  };
+  walk(decl.follow);
+  return [...labels];
+};
+
+export type { ParseError } from "./parse.js";
 
 export type SessionError = ParseError | AclError | MutationError;
 
@@ -43,6 +60,8 @@ export interface SessionDeps {
   readonly log: LogStore;
   /** null = no ACL configured: the host's tool allowlist is the only gate. (SPEC §4.6) */
   readonly acl: AclPolicy | null;
+  /** Role slices by agent — schema file, never tool payload; agents don't pick scope. (§4.7) */
+  readonly slices?: Readonly<Record<string, SliceDecl>> | undefined;
   readonly sessionId: SessionId;
   /** On whose behalf this session runs. Injected: local env in OSS, SSO in enterprise. */
   readonly principal: Principal | null;
@@ -51,15 +70,6 @@ export interface SessionDeps {
   readonly now: () => number;
   readonly newTxId: () => TxId;
 }
-
-const parseWith = <T>(schema: z.ZodType<T>, input: unknown): Result<T, ParseError> => {
-  const r = schema.safeParse(input);
-  if (r.success) return ok(r.data);
-  return err({
-    code: "PARSE_ERROR",
-    issues: r.error.issues.map((i) => ({ path: i.path.map(String).join("."), message: i.message })),
-  });
-};
 
 type PostedMutation = z.output<(typeof toolInputs)["blackboard_post"]>["mutation"];
 
@@ -222,7 +232,12 @@ export const createSession = (deps: SessionDeps) => {
       const parsed = parseWith(toolInputs.blackboard_read, input);
       if (!parsed.ok) return parsed;
       const root = nodeId(parsed.value.root);
-      if (deps.acl === null) return ok(neighborhood(state, root, parsed.value.depth));
+      const decl = deps.slices?.[agent as string];
+      if (deps.acl === null) {
+        // No ACL: a declaration is still a bound — its own labels are the readable set.
+        if (decl !== undefined) return ok(sliceFor(state, root, decl, declLabels(decl)));
+        return ok(neighborhood(state, root, DEFAULT_READ_DEPTH));
+      }
       // Asking for an unreadable root is an explicit denial; unreadable neighbors are
       // silently filtered — the engine shapes the slice, the agent never widens it.
       const rootNode = state.nodes.get(root);
@@ -230,12 +245,13 @@ export const createSession = (deps: SessionDeps) => {
         const gate = checkRead(deps.acl, agent, rootNode.label);
         if (!gate.ok) return deny(agent, gate.error);
       }
-      return ok(
-        readableNeighborhood(state, root, parsed.value.depth, readableLabels(deps.acl, agent)),
-      );
+      const readable = readableLabels(deps.acl, agent);
+      if (decl !== undefined) return ok(sliceFor(state, root, decl, readable));
+      return ok(readableNeighborhood(state, root, DEFAULT_READ_DEPTH, readable));
     },
 
-    status(): SessionStatus {
+    // Async by contract even though local: a socket proxy cannot honor a sync status. (W2-B)
+    async status(): Promise<SessionStatus> {
       const at = deps.now();
       const byLabel: Record<string, number> = {};
       for (const n of state.nodes.values()) byLabel[n.label] = (byLabel[n.label] ?? 0) + 1;

@@ -31,9 +31,10 @@ export const toolInputs = {
       }),
     ]),
   }),
+  // No depth parameter: scope belongs to the engine (role slice or server default),
+  // never to the agent. (SPEC §4.7)
   blackboard_read: z.object({
     root: z.string().min(1),
-    depth: z.number().int().min(0).max(5).default(2),
   }),
   blackboard_claim: z.object({
     id: z.string().min(1),

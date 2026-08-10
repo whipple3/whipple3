@@ -1,5 +1,5 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -154,5 +154,47 @@ describe("whipple3 serve — the board backend owns one session on one socket", 
       { agent: "auditor-2", type: "graph.mutation" },
       { agent: "auditor-2", type: "claim.acquired" },
     ]);
+  });
+
+  it("--policy makes checkAcl real over the wire; distill reports the denial", async () => {
+    if (!existsSync(bin)) throw new Error("dist/main.js missing — run `pnpm build` first");
+    const cwd = mkdtempSync(join(tmpdir(), "w3srv-"));
+    writeFileSync(
+      join(cwd, "policy.json"),
+      JSON.stringify({ acl: { scanner: { write: ["CodeFile"], read: ["CodeFile"] } } }),
+    );
+    const serve = spawnCli(cwd, "serve", "--policy", "policy.json");
+    await waitFor(() => serve.stdout().includes("listening"), "serve to announce its socket");
+
+    const scanner = rpcClient(
+      spawnCli(cwd, "mcp", "--board", ".whipple3/board.sock", "--agent", "scanner").child,
+    );
+    await scanner.initialize();
+
+    expect(
+      await scanner.call("blackboard_post", {
+        mutation: { kind: "ADD_NODE", id: "f1", label: "CodeFile", props: {} },
+      }),
+    ).toMatchObject({ ok: true });
+
+    expect(
+      await scanner.call("blackboard_post", {
+        mutation: { kind: "ADD_NODE", id: "x1", label: "Exfil", props: {} },
+      }),
+    ).toMatchObject({ ok: false, error: { code: "ACL_DENIED_WRITE", label: "Exfil" } });
+
+    const dir = join(cwd, ".whipple3");
+    const ndjson = readdirSync(dir).find((f) => f.endsWith(".ndjson"));
+    if (ndjson === undefined) throw new Error("no session log written");
+    const types = readFileSync(join(dir, ndjson), "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => (JSON.parse(l) as { event: { type: string } }).event.type);
+    expect(types).toEqual(["graph.mutation", "acl.denied"]);
+
+    const distill = spawnCli(cwd, "distill", join(".whipple3", ndjson));
+    expect(await exited(distill.child)).toBe(0);
+    const report = readFileSync(join(dir, ndjson.replace(/\.ndjson$/, ".report.md")), "utf8");
+    expect(report).toContain("| scanner | 1 | 0 | 0 | 0 | 0 | 1 |");
   });
 });

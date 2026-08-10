@@ -100,7 +100,7 @@ The **append-only event log is the source of truth**. The graph is a materialize
 
 ### 4.7 Context: control plane vs data plane
 
-Slicing is **push-model**: the engine computes the minimal slice and injects it at dispatch; agents cannot read beyond it. Pull-mode reads obey the same principle: `blackboard_read` and `blackboard_next` return the **policy-filtered** slice (`readableNeighborhood`) — the engine decides what the agent sees; the agent never widens its own scope. The **graph carries metadata and pointers/hashes only** — blobs (file contents, diffs) live on the filesystem/data plane, never in node properties.
+Slicing is **push-model**: the engine computes the minimal slice and injects it at dispatch; agents cannot read beyond it. Pull-mode reads obey the same principle: `blackboard_read` and `blackboard_next` return the **policy-filtered** slice — the engine decides what the agent sees; the agent never widens its own scope, and carries no depth parameter. Two tiers: role-declared slices (`sliceFor`, declaration-bounded — the tier every configured agent gets, provably a narrowing of its read ACL) and the default `readableNeighborhood` fallback for undeclared agents. The **graph carries metadata and pointers/hashes only** — blobs (file contents, diffs) live on the filesystem/data plane, never in node properties.
 
 ### 4.8 Board lifetime
 

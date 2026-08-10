@@ -33,7 +33,9 @@ export const createServer = (session: AgentConnection): McpServer => {
   server.registerTool(
     "blackboard_read",
     {
-      description: "Read a scoped slice: the neighborhood of a root node.",
+      description:
+        "Read a scoped slice around a root node. The engine decides the scope: your " +
+        "declared role slice if one exists, else a default neighborhood.",
       inputSchema: toolInputs.blackboard_read,
     },
     async (args) => asToolResult(await session.read(args)),
@@ -72,7 +74,7 @@ export const createServer = (session: AgentConnection): McpServer => {
       description: "Session summary: node/edge/claim counts by label.",
       inputSchema: toolInputs.blackboard_status,
     },
-    () => asToolResult(ok(session.status())),
+    async () => asToolResult(ok(await session.status())),
   );
 
   return server;
