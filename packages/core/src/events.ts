@@ -1,0 +1,49 @@
+import type { AgentId, SessionId, TxId } from "./ids.js";
+import type { Mutation } from "./mutation.js";
+
+/**
+ * Causality baked into every event: `causationId` chains double as cycle detection /
+ * hop budgets (safety) and trace propagation (observability). (SPEC §4.5, §7)
+ */
+export interface EventMeta {
+  readonly txId: TxId;
+  readonly sessionId: SessionId;
+  readonly agentId: AgentId | null;
+  readonly ts: number;
+  readonly causationId: TxId | null;
+  readonly correlationId: TxId;
+}
+
+/**
+ * Full taxonomy reserved from day one so observability and evals are adapters later,
+ * not a rewrite. v0.1 emits the subset it can observe. (SPEC §7)
+ */
+export type AraiEvent =
+  | { readonly type: "graph.mutation"; readonly mutation: Mutation }
+  | { readonly type: "claim.acquired"; readonly nodeId: string; readonly agentId: string }
+  | { readonly type: "claim.released"; readonly nodeId: string; readonly agentId: string }
+  | { readonly type: "claim.expired"; readonly nodeId: string; readonly agentId: string }
+  | { readonly type: "agent.triggered"; readonly agentId: string; readonly reason: string }
+  | { readonly type: "agent.started"; readonly agentId: string }
+  | { readonly type: "agent.completed"; readonly agentId: string }
+  | { readonly type: "agent.failed"; readonly agentId: string; readonly message: string }
+  | {
+      readonly type: "llm.call";
+      readonly model: string;
+      readonly inputTokens: number;
+      readonly outputTokens: number;
+      readonly costUsd: number | null;
+      readonly latencyMs: number;
+    }
+  | { readonly type: "tool.call"; readonly name: string; readonly latencyMs: number }
+  | { readonly type: "sandbox.spawned"; readonly image: string }
+  | { readonly type: "sandbox.exited"; readonly exitCode: number }
+  | { readonly type: "session.started"; readonly task: string }
+  | { readonly type: "session.distilled"; readonly summary: string }
+  | { readonly type: "session.purged" };
+
+export interface LogRecord {
+  readonly seq: number;
+  readonly meta: EventMeta;
+  readonly event: AraiEvent;
+}

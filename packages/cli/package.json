@@ -1,0 +1,28 @@
+{
+  "name": "arai",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "arai — a typed, ephemeral, event-sourced blackboard for coordinating AI agents.",
+  "bin": {
+    "arai": "./dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@arai/core": "workspace:*",
+    "@arai/log": "workspace:*",
+    "@arai/transport-mcp": "workspace:*",
+    "citty": "^0.1.6"
+  }
+}

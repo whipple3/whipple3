@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "arai": { "command": "npx", "args": ["arai", "mcp"] }
+  }
+}
