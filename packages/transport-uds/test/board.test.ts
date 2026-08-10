@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { agentId, principal, sessionId, txId } from "@whipple3/core";
 import { createMemoryLog } from "@whipple3/log";
 import { createSession } from "@whipple3/transport-mcp";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { connectBoard } from "../src/client.js";
 import { createLineBuffer, encodeFrame } from "../src/frames.js";
 import { startBoardServer } from "../src/server.js";
@@ -152,6 +152,37 @@ describe("board server — protocol errors are structured frames, never prose", 
       { kind: "ready" },
       { kind: "err", id: null, error: { code: "BAD_FRAME" } },
     ]);
+  });
+});
+
+describe("board server — one identity, at most one live connection (D2 corollary)", () => {
+  it("refuses a second live connection for an already-bound identity", async () => {
+    const { socketPath } = await makeBoard();
+    await client(socketPath, "auditor-1");
+    // Two workers sharing an identity would renew each other's leases — the claim
+    // protection dissolves. The board refuses mechanically, not by instruction.
+    await expect(connectBoard({ socketPath, agentId: agentId("auditor-1") })).rejects.toThrow(
+      /IDENTITY_IN_USE/,
+    );
+  });
+
+  it("a refused hello does not evict the live holder", async () => {
+    const { socketPath } = await makeBoard();
+    const holder = await client(socketPath, "auditor-1");
+    await expect(connectBoard({ socketPath, agentId: agentId("auditor-1") })).rejects.toThrow();
+    expect((await holder.post(postFile("f1"))).ok).toBe(true);
+  });
+
+  it("frees the identity when its connection closes", async () => {
+    const { socketPath } = await makeBoard();
+    const first = await client(socketPath, "auditor-1");
+    first.close();
+    // The server observes the close asynchronously; the rebind may need a beat.
+    await vi.waitFor(async () => {
+      const again = await connectBoard({ socketPath, agentId: agentId("auditor-1") });
+      cleanups.push(() => again.close());
+      expect((await again.status()).nodes).toBe(0);
+    });
   });
 });
 

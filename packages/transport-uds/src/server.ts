@@ -64,19 +64,26 @@ const answer = async (conn: AgentConnection, req: ReqFrame): Promise<ServerFrame
 };
 
 /**
- * One socket = one agent: the first frame MUST be a hello, which binds
- * `session.connect(agentId)` to this connection for its whole life. (ADR-007)
+ * One socket = one agent, and one agent = at most one live socket: the first frame
+ * MUST be a hello, which binds `session.connect(agentId)` to this connection for its
+ * whole life (ADR-007); a hello for an identity another live socket already holds is
+ * refused — two workers sharing a name would renew each other's leases (D2) and the
+ * claim protection would dissolve.
  */
-const serveConnection = (session: Session, socket: Socket): void => {
+const serveConnection = (session: Session, socket: Socket, liveIdentities: Set<string>): void => {
   let bound: AgentConnection | null = null;
+  let boundId: string | null = null;
   const push = createLineBuffer();
   const send = (frame: ServerFrame): void => {
     socket.write(encodeFrame(frame));
   };
-  const refuse = (code: "BAD_FRAME" | "HELLO_REQUIRED"): void => {
+  const refuse = (code: "BAD_FRAME" | "HELLO_REQUIRED" | "IDENTITY_IN_USE"): void => {
     send({ kind: "err", id: null, error: { code } });
     socket.end(); // flush the refusal, then hang up — the stream is not trustworthy
   };
+  socket.once("close", () => {
+    if (boundId !== null) liveIdentities.delete(boundId);
+  });
 
   const handle = (frame: ClientFrame): void => {
     if (frame.kind === "hello") {
@@ -84,6 +91,12 @@ const serveConnection = (session: Session, socket: Socket): void => {
         refuse("BAD_FRAME"); // re-binding identity is never ok
         return;
       }
+      if (liveIdentities.has(frame.agentId)) {
+        refuse("IDENTITY_IN_USE");
+        return;
+      }
+      liveIdentities.add(frame.agentId);
+      boundId = frame.agentId;
       bound = session.connect(agentId(frame.agentId));
       send({ kind: "ready" });
       return;
@@ -121,10 +134,11 @@ export const startBoardServer = async (opts: BoardServerOptions): Promise<BoardS
   const socketPath = assertUdsPath(opts.socketPath);
   await claimSocketPath(socketPath);
   const sockets = new Set<Socket>();
+  const liveIdentities = new Set<string>();
   const server = createServer((socket) => {
     sockets.add(socket);
     socket.once("close", () => sockets.delete(socket));
-    serveConnection(opts.session, socket);
+    serveConnection(opts.session, socket, liveIdentities);
   });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);

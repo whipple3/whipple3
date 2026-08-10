@@ -37,7 +37,7 @@ export const serverFrame = z.discriminatedUnion("kind", [
     /** null when the failure cannot be correlated to a request (e.g. unparseable line). */
     id: z.number().int().nonnegative().nullable(),
     error: z.object({
-      code: z.enum(["BAD_FRAME", "HELLO_REQUIRED", "INTERNAL"]),
+      code: z.enum(["BAD_FRAME", "HELLO_REQUIRED", "IDENTITY_IN_USE", "INTERNAL"]),
       message: z.string().optional(),
     }),
   }),
