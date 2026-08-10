@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
-import { defineEdge, defineNode } from "../src/schema.js";
+import { defineEdge, defineNode, type Trigger } from "../src/schema.js";
 
 /**
  * Type-level tests (SPEC §9.3: the type-gymnastics budget is spent on the public DSL).
@@ -73,6 +73,13 @@ describe("when() literal inference (compile-time contract)", () => {
     CodeFile.when({ staus: "pending" });
   });
 
+  it("rejects a typo'd prop NAME even when the match is built elsewhere", () => {
+    // Excess-property checking only fires on inline literals; this must NOT leak through.
+    const indirect = { path: "src/a.ts", staus: "pending" };
+    // @ts-expect-error "staus" is not a declared prop of CodeFile
+    CodeFile.when(indirect);
+  });
+
   it("rejects a prop value of the wrong type entirely", () => {
     // @ts-expect-error path is a string, not a number
     CodeFile.when({ path: 42 });
@@ -86,5 +93,26 @@ describe("when() literal inference (compile-time contract)", () => {
   it("infers the trigger label as a literal", () => {
     const trigger = CodeFile.when({ status: "pending" });
     expectTypeOf(trigger.label).toEqualTypeOf<"CodeFile">();
+  });
+
+  it("carries the inferred match type on the trigger", () => {
+    const trigger = CodeFile.when({ status: "pending" });
+    expectTypeOf(trigger.match).toEqualTypeOf<{ readonly status: "pending" }>();
+    // @ts-expect-error the trigger match has no "staus" key to read back
+    void trigger.match.staus;
+  });
+
+  it("keeps specific triggers assignable to the bare Trigger slice.ts consumes", () => {
+    const trigger = CodeFile.when({ status: "pending" });
+    expectTypeOf(trigger).toExtend<Trigger>();
+  });
+});
+
+describe("defineEdge literal inference (compile-time contract)", () => {
+  it("infers endpoint labels as literals, not string", () => {
+    const HasIssue = defineEdge("has_issue", { from: CodeFile, to: SecurityIssue });
+    expectTypeOf(HasIssue.label).toEqualTypeOf<"has_issue">();
+    expectTypeOf(HasIssue.from).toEqualTypeOf<"CodeFile">();
+    expectTypeOf(HasIssue.to).toEqualTypeOf<"SecurityIssue">();
   });
 });
