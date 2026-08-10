@@ -23,7 +23,9 @@ const scrubEl = byId("scrub") as HTMLInputElement;
 const liveBtn = byId("live") as HTMLButtonElement;
 
 const graph = new Graph();
-const sigma = new Sigma(graph, container);
+// allowInvalidContainer: module code may run before first layout gives #graph a width;
+// Sigma observes resizes and recovers the moment the container has real dimensions.
+const sigma = new Sigma(graph, container, { allowInvalidContainer: true });
 
 const records: LogRecord[] = [];
 let model: StudioModel = emptyModel();
