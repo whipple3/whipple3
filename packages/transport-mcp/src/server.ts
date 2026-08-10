@@ -49,6 +49,15 @@ export const createServer = (session: AgentConnection): McpServer => {
   );
 
   server.registerTool(
+    "blackboard_release",
+    {
+      description: "Release this connection's own lease on a node before its ttl expires.",
+      inputSchema: toolInputs.blackboard_release,
+    },
+    async (args) => asToolResult(await session.release(args)),
+  );
+
+  server.registerTool(
     "blackboard_next",
     {
       description: "Pull the next pending work item for a label, skipping claimed nodes.",

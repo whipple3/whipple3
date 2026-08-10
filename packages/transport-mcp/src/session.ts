@@ -174,15 +174,37 @@ export const createSession = (deps: SessionDeps) => {
       const parsed = parseWith(toolInputs.blackboard_claim, input);
       if (!parsed.ok) return parsed;
       const at = deps.now();
+      const id = nodeId(parsed.value.id);
       const committed = await commit(agent, {
         kind: "CLAIM_NODE",
-        id: nodeId(parsed.value.id),
+        id,
         agentId: agent,
         now: at,
         ttlMs: parsed.value.ttlMs,
       });
       if (!committed.ok) return committed;
+      // Observational taxonomy event; replay truth stays graph.mutation. claim.expired
+      // stays unemitted until the push scheduler owns a clock. (SPEC §7)
+      await deps.log.append(meta(agent, deps.newTxId()), {
+        type: "claim.acquired",
+        nodeId: id as string,
+        agentId: agent as string,
+      });
       return ok({ txId: committed.value.tx, expiresAt: at + parsed.value.ttlMs });
+    },
+
+    async release(input: unknown): Promise<Result<{ txId: TxId }, SessionError>> {
+      const parsed = parseWith(toolInputs.blackboard_release, input);
+      if (!parsed.ok) return parsed;
+      const id = nodeId(parsed.value.id);
+      const committed = await commit(agent, { kind: "RELEASE_NODE", id, agentId: agent });
+      if (!committed.ok) return committed;
+      await deps.log.append(meta(agent, deps.newTxId()), {
+        type: "claim.released",
+        nodeId: id as string,
+        agentId: agent as string,
+      });
+      return ok({ txId: committed.value.tx });
     },
 
     async next(

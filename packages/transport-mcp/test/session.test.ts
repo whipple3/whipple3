@@ -101,7 +101,7 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     await as("scanner").post(fileNode("a.ts"));
     await as("auditor-1").claim({ id: "f1", ttlMs: 1000 });
     const records = await log.read();
-    expect(records).toHaveLength(2);
+    expect(records).toHaveLength(3); // ADD_NODE, CLAIM_NODE, and the claim.acquired event
     for (const r of records) expect(r.meta.principal).toBe("michael");
   });
 
@@ -175,6 +175,42 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     } else {
       throw new Error("expected VERSION_CONFLICT");
     }
+  });
+
+  it("a successful claim appends graph.mutation AND an observational claim.acquired event", async () => {
+    const { as, log } = makeSession();
+    await as("scanner").post(fileNode("a.ts"));
+    await as("auditor-1").claim({ id: "f1", ttlMs: 1000 });
+    const records = await log.read();
+    expect(records.map((r) => r.event.type)).toEqual([
+      "graph.mutation",
+      "graph.mutation",
+      "claim.acquired",
+    ]);
+    expect(records[2]?.event).toEqual({
+      type: "claim.acquired",
+      nodeId: "f1",
+      agentId: "auditor-1",
+    });
+  });
+
+  it("release ends the holder's lease, logs claim.released, and rejects non-holders", async () => {
+    const { session, as, log } = makeSession();
+    await as("scanner").post(fileNode("a.ts"));
+    await as("auditor-1").claim({ id: "f1", ttlMs: 1000 });
+
+    const stranger = await as("auditor-2").release({ id: "f1" });
+    expect(stranger.ok).toBe(false);
+    if (!stranger.ok) expect(stranger.error.code).toBe("CLAIM_NOT_HELD");
+
+    const released = await as("auditor-1").release({ id: "f1" });
+    expect(released.ok).toBe(true);
+    expect(session.snapshot().claims.has(nodeId("f1"))).toBe(false);
+    const last = (await log.read()).at(-1);
+    expect(last?.event).toEqual({ type: "claim.released", nodeId: "f1", agentId: "auditor-1" });
+
+    // The node is immediately claimable again — no TTL wait.
+    expect((await as("auditor-2").claim({ id: "f1", ttlMs: 1000 })).ok).toBe(true);
   });
 
   it("claim leases a node to the connection's agent; a second agent is rejected meanwhile", async () => {

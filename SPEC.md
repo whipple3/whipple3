@@ -50,8 +50,12 @@ The thesis is research-validated (2025–26): blackboard-style shared state outp
 `@whipple3/core` is **pure**: zero I/O, zero `Date.now()`, zero randomness, zero Node APIs. Time and IDs are injected in; effects live in the shell behind ports. The central function is a reducer:
 
 ```ts
-apply(state: GraphState, mutation: Mutation): Result<{ state: GraphState; events: Event[] }, MutationError>
+apply(state: GraphState, mutation: Mutation): Result<GraphState, MutationError>
 ```
+
+The reducer returns state only; **the session shell assembles events** (`graph.mutation`
+as replay truth, plus observational taxonomy events like `claim.acquired/released` and
+`acl.denied`). Core emits nothing — it has no log to emit into.
 
 Purity is a product feature, not aesthetics: replay, time-travel, and property-based testing fall out of it.
 
@@ -82,7 +86,7 @@ The **append-only event log is the source of truth**. The graph is a materialize
 ### 4.6 Security model
 
 - **ACL at the schema level, in both directions.** Each agent declares `{ write, read }`
-  label lists. `canMutate` (write) is enforced by the engine on every mutation; the read
+  label lists. `checkAcl` (write) is enforced by the engine on every mutation; the read
   side filters every slice during traversal (§4.7) — an unreadable node blocks its path
   and never leaks via an edge endpoint. Every denial, read or write, is appended to the
   log as an `acl.denied` event: enforcement leaves a trail, never a silent drop.
@@ -111,8 +115,8 @@ packages/
     state.ts      # GraphState — immutable nodes/edges/claims/versions
     mutation.ts   # Mutation union + apply() — the reducer
     events.ts     # event taxonomy + causality fields
-    acl.ts        # canMutate — pure predicate
-    claim.ts      # lease semantics — time injected
+    acl.ts        # checkAcl / checkRead — pure predicates, both directions
+    mutation.ts   # reducer incl. claim/lease semantics — time injected via the mutation
     slice.ts      # context slicing — pure query
     ids.ts        # branded types + parsers
     result.ts     # Result<T, E> (~20 lines, no library)
@@ -141,10 +145,11 @@ examples/
 | `blackboard_post` | Submit a typed, versioned mutation (schema + ACL validated) |
 | `blackboard_read` | Read a scoped slice |
 | `blackboard_claim` | Claim/lease a node for exclusive work |
+| `blackboard_release` | Release this connection's own lease before ttl expiry |
 | `blackboard_next` | Pull the next pending work item for this role (`when()` in pull mode) |
 | `blackboard_status` | Session/graph summary |
 
-**Envelope (NDJSON on the wire and in the log):** `protocolVersion`, `sessionId`, `agentId`, `principal`, `ts`, `causationId`, `correlationId` (W3C traceparent-compatible IDs), payload. `agentId` is derived from the connection — tool payloads carry no identity (§4.6). `principal` is on-behalf-of attribution ("Michael's agent did", not just "auditor did"): read from the local environment in OSS, injectable via `WHIPPLE3_PRINCIPAL` (the enterprise/SSO hook). Transaction IDs are **ULIDs**. Errors return as structured values (mirroring core's `Result`), never as prose.
+**Envelope (NDJSON in the log):** `txId`, `sessionId`, `agentId`, `principal`, `ts`, `causationId`, `correlationId` (ULIDs; a W3C traceparent mapping is the OTel adapter's job, Stage 7). Protocol versioning lives in the MCP handshake, not in per-record meta. `agentId` is derived from the connection — tool payloads carry no identity (§4.6). `principal` is on-behalf-of attribution ("Michael's agent did", not just "auditor did"): read from the local environment in OSS, injectable via `WHIPPLE3_PRINCIPAL` (the enterprise/SSO hook). Transaction IDs are **ULIDs**. Errors return as structured values (mirroring core's `Result`), never as prose.
 
 ## 7. Event taxonomy
 
@@ -160,7 +165,7 @@ This single decision is what makes observability and evals adapters later instea
 
 **What Claude Code provides for free:** orchestration, models (per-subagent `model` frontmatter — whipple3 never sees model choice), tool execution, permissions. **Therefore out of scope for the slice:** sandboxes, scheduler, LLM layer, UDS, OTel adapter, evals package, CRDTs, XState.
 
-**Packaging:** a Claude Code **plugin** bundling the MCP server (`.mcp.json`), three subagents (`.claude/agents/`), and an `/audit` command. Minimal path alternative: `claude mcp add --transport stdio whipple3 -- npx whipple3 mcp` + drop agent files. Subagents access the blackboard via inherited or allow-listed MCP tools; the `tools` whitelist doubles as a second enforcement layer over `canMutate`.
+**Packaging:** a Claude Code **plugin** bundling the MCP server (`.mcp.json`), three subagents (`.claude/agents/`), and an `/audit` command. Minimal path alternative: `claude mcp add --transport stdio whipple3 -- npx whipple3 mcp` + drop agent files. Subagents access the blackboard via inherited or allow-listed MCP tools; the `tools` whitelist doubles as a second enforcement layer over `checkAcl`.
 
 **Demo script:** `/audit` on a real repo → *scanner* posts `CodeFile` nodes (ACL: can post nothing else) → three *auditors* in parallel, each `blackboard_claim`s pending files (zero duplicate work; leases visible in Studio, colored per agent) → `SecurityIssue` nodes accumulate → *fixer* reads issues; fixes pass a HITL approval gate → `distill()` → `report.md`; graph purged; trace log retained. The viral moment is Studio: a **live graph of what your subagents are doing right now.**
 

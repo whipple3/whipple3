@@ -37,7 +37,7 @@ const payloadOf = (result: Awaited<ReturnType<Client["callTool"]>>): unknown => 
 };
 
 describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", () => {
-  it("advertises exactly the five blackboard tools, none accepting an agentId", async () => {
+  it("advertises exactly the six blackboard tools, none accepting an agentId", async () => {
     const client = await connectClient(makeSession().session, "scanner");
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -45,6 +45,7 @@ describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", 
       "blackboard_next",
       "blackboard_post",
       "blackboard_read",
+      "blackboard_release",
       "blackboard_status",
     ]);
     for (const tool of tools) {

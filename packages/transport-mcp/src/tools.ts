@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * The five MCP tools of the blackboard (SPEC §6). Input schemas live here so the MCP
+ * The six MCP tools of the blackboard (SPEC §6). Input schemas live here so the MCP
  * JSON Schemas are a projection of one source of truth (SPEC §9.3, DRY of knowledge).
  *
  * No tool accepts an agentId: identity is bound to the connection at `session.connect`,
@@ -38,6 +38,9 @@ export const toolInputs = {
   blackboard_claim: z.object({
     id: z.string().min(1),
     ttlMs: z.number().int().positive().default(120_000),
+  }),
+  blackboard_release: z.object({
+    id: z.string().min(1),
   }),
   blackboard_next: z.object({
     label: z.string().min(1),
