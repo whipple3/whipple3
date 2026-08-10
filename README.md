@@ -12,40 +12,94 @@ Agents don't chat and don't funnel everything through an orchestrator's context.
 write a shared typed graph through structured, versioned, ACL-checked mutations. The append-only
 event log is the source of truth — so every session is auditable and replayable by construction.
 
+## Quick start — repo to working board
+
+Prereqs: **Node ≥ 22**, [pnpm](https://pnpm.io), git.
+(Command wall-time measured cold on 2026-08-11: under one minute; budget ten with host wiring.)
+
+**1. Install the CLI.** Until the npm publish lands (after it: `npm i -g whipple3`):
+
+```bash
+git clone https://github.com/whipple3/whipple3 && cd whipple3
+pnpm install && pnpm build
+(cd packages/cli && npm link)     # `whipple3` now resolves anywhere
+```
+
+**2. Start the board** — terminal 1, in the project your agents should coordinate on:
+
+```bash
+whipple3 serve
+# whipple3 serve: board listening on .whipple3/board.sock — log .whipple3/session-<ts>.ndjson
+```
+
+One process owns the session and the append-only log. Start it **before** the host: stdio MCP
+servers dial the socket once, at session start. Optional `--policy policy.json` loads
+label-level read/write ACLs per agent — every denial is logged, never silently dropped.
+
+**3. Connect agents** — terminal 2, same directory. One proxy process per agent; identity is
+bound to the socket, never self-declared in a payload:
+
+```bash
+claude mcp add --transport stdio whipple3-main -- whipple3 mcp --board .whipple3/board.sock --agent main
+```
+
+Repeat per agent identity — or skip the wiring and run the complete five-agent demo
+(scanner, three parallel auditors, a fixer behind a human approval gate):
+
+```bash
+claude --plugin-dir ./examples/claude-code-plugin
+# then, inside Claude Code:
+/whipple3:audit
+```
+
+See [examples/claude-code-plugin/](./examples/claude-code-plugin/) for how the pieces fit
+and what each enforcement layer actually guarantees. No board running? `whipple3 mcp --agent main`
+alone serves a private single-process board over stdio.
+
+**4. Distill** — fold the session log into a report; the trace stays:
+
+```bash
+whipple3 distill .whipple3/session-<ts>.ndjson    # → .whipple3/session-<ts>.report.md
+```
+
+**5. Watch it live** (optional, from this repo while `whipple3 studio` wiring is pending):
+
+```bash
+pnpm --filter @whipple3/studio dev /path/to/.whipple3/session-<ts>.ndjson
+```
+
+Live graph, claims tinted per holding agent, per-node history, a time-travel scrubber over
+the log.
+
 ## Status
 
-Pre-release skeleton (v0.1 vertical slice in progress — see [SPEC.md](./SPEC.md) §12).
-What's real today:
+Pre-release (v0.1 vertical slice — see [SPEC.md](./SPEC.md) §12). What's real today:
 
 - `@whipple3/core` — pure functional core: branded IDs, immutable `GraphState`, the `apply()`
   reducer with optimistic versioning and claim/lease semantics, ACL checks, context slicing,
   the full event taxonomy. One runtime dependency: Zod. Property-tested with fast-check.
 - `@whipple3/log` — `LogStore` port with memory and NDJSON adapters, verified by a shared
   conformance suite.
-- `@whipple3/transport-mcp` — the five blackboard tools (`post` / `read` / `claim` / `next` /
-  `status`): session shell (parse → ACL → apply → append) and a stdio MCP server, tested
-  over a real client round-trip. Identity is bound to the connection at `session.connect` —
-  no tool payload carries an `agentId`; every event records the `principal` the session
-  runs on behalf of.
-- `whipple3` — the CLI: `whipple3 mcp --agent <id>` serves the blackboard as that agent
-  (one server process per agent; default `main`) and writes the session trace to
-  `.whipple3/session-<timestamp>.ndjson` (`init` / `studio` / `replay` are still stubs).
+- `@whipple3/transport-mcp` — the six blackboard tools (`post` / `read` / `claim` / `release` /
+  `next` / `status`): session shell (parse → ACL → apply → append) and a stdio MCP server,
+  tested over a real client round-trip. Identity is bound to the connection at
+  `session.connect` — no tool payload carries an `agentId`; every event records the
+  `principal` the session runs on behalf of.
+- `@whipple3/transport-uds` — the shared-state backend: one board server on a Unix domain
+  socket, per-agent connections with identity bound at connect.
+- `whipple3` — the CLI: `serve` (the board backend, with `--policy`), `mcp --board <sock>
+  --agent <id>` per-agent proxies (or `mcp --agent <id>` standalone), `distill <log>` →
+  report.md. `init` / `studio` / `replay` are still stubs; session traces live under
+  `.whipple3/`.
 
 First target: a shared blackboard for **Claude Code subagents** — parallel workers that
 claim tasks instead of colliding, with a live graph Studio. See `examples/claude-code-plugin/`.
 
-## Quick start (dev)
+## Developing
 
 ```bash
 pnpm install
 pnpm typecheck && pnpm lint && pnpm depcruise && pnpm build && pnpm test
-```
-
-Hook the blackboard into Claude Code (or any MCP host). On stdio, one server process is
-one agent identity — pass it with `--agent`:
-
-```bash
-claude mcp add --transport stdio whipple3 -- node packages/cli/dist/main.js mcp --agent main
 ```
 
 ## Design
