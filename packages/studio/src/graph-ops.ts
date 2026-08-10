@@ -23,33 +23,7 @@ export type GraphOp =
     }
   | { readonly kind: "touch-node"; readonly id: string };
 
-/** Categorical palette; label → color must be stable across sessions and machines. */
-const PALETTE = [
-  "#4e9af1",
-  "#f1a04e",
-  "#5fd08a",
-  "#ef6b8a",
-  "#b98af1",
-  "#f1d54e",
-  "#4ed5d5",
-  "#f1774e",
-  "#8aa4f1",
-  "#a4d54e",
-] as const;
-
-const FALLBACK_COLOR = "#8899aa";
-
-const fnv1a = (text: string): number => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash;
-};
-
-const colorForLabel = (label: string): string =>
-  PALETTE[fnv1a(label) % PALETTE.length] ?? FALLBACK_COLOR;
+import { colorForLabel, fnv1a } from "./colors.js";
 
 /** Deterministic scatter on a ring: no layout engine, no randomness, replay-stable. */
 const positionFor = (id: string): { readonly x: number; readonly y: number } => {
