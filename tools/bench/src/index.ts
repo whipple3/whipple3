@@ -1,5 +1,6 @@
 export { type BoardMetrics, extractBoardMetrics } from "./board.js";
 export { renderComparison } from "./compare.js";
+export { renderExtract } from "./extract.js";
 export { extractTranscriptMetrics, type TranscriptMetrics } from "./metrics.js";
 export {
   type MockSession,

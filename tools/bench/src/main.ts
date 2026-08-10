@@ -4,16 +4,20 @@ import { join, resolve } from "node:path";
 import { createJsonlLog } from "@whipple3/log";
 import { extractBoardMetrics } from "./board.js";
 import { renderComparison } from "./compare.js";
+import { renderExtract } from "./extract.js";
 import { mockVanillaSession, mockWhipple3Session, writeMockSession } from "./mock.js";
 import { runAuditScenario } from "./scenario.js";
 import { loadSessionMetrics } from "./subagents.js";
 
 const USAGE = `usage:
   bench compare <whipple3.jsonl> <vanilla.jsonl> [--board <board.ndjson>] [--out <file.md>]
+  bench extract <session.jsonl> [--board <board.ndjson>] [--out <file.md>]
   bench mock <outDir>
 
 compare  render the honest markdown comparison of two Claude Code session transcripts;
          --board adds duplicate-work + findings metrics from a whipple3 board log.
+extract  bank ONE run's numbers before its counterpart exists: same rows as compare,
+         plus per-agent-type subagent context — no verdicts.
 mock     prove the pipeline with NO LLM: spawn the real \`whipple3 serve\` + proxies for a
          fixed audit, synthesize a format-true transcript pair, write comparison.md.`;
 
@@ -55,6 +59,17 @@ const compare = async (argv: Argv): Promise<string> => {
   return table;
 };
 
+const extract = async (argv: Argv): Promise<string> => {
+  const [sessionPath] = argv.positionals;
+  if (sessionPath === undefined) throw new Error("extract needs a transcript path");
+  const table = renderExtract(
+    loadSessionMetrics(sessionPath),
+    await boardMetrics(argv.flags.board),
+  );
+  if (argv.flags.out !== undefined) writeFileSync(argv.flags.out, table, "utf8");
+  return table;
+};
+
 const mock = async (argv: Argv): Promise<string> => {
   const [outDir] = argv.positionals;
   if (outDir === undefined) throw new Error("mock needs an output directory");
@@ -79,6 +94,7 @@ const main = async (): Promise<void> => {
   const [command, ...rest] = process.argv.slice(2);
   try {
     if (command === "compare") process.stdout.write(await compare(parseArgv(rest)));
+    else if (command === "extract") process.stdout.write(await extract(parseArgv(rest)));
     else if (command === "mock") process.stdout.write(await mock(parseArgv(rest)));
     else {
       console.error(USAGE);

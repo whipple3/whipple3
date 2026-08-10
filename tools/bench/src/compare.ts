@@ -9,7 +9,7 @@ import type { SessionMetrics } from "./subagents.js";
  */
 const TARGET_REDUCTION_PCT = 40;
 
-const int = (n: number): string => n.toLocaleString("en-US");
+export const int = (n: number): string => n.toLocaleString("en-US");
 
 /** Signed percent delta of a vs b, one decimal; null when the baseline is empty. */
 const pct = (a: number, b: number): number | null => (b === 0 ? null : ((a - b) / b) * 100);
@@ -20,7 +20,7 @@ const fmtPct = (delta: number | null): string => {
   return delta > 0 ? `+${fixed}%` : `${fixed}%`;
 };
 
-const fmtDur = (ms: number | null): string => {
+export const fmtDur = (ms: number | null): string => {
   if (ms === null) return "n/a";
   const totalSeconds = Math.round(ms / 1000);
   if (totalSeconds < 60) return `${totalSeconds}s`;
@@ -32,10 +32,10 @@ const fmtDur = (ms: number | null): string => {
 const subagentContext = (s: SessionMetrics): number | null =>
   s.subagents === null ? null : s.subagents.contextInTokens + s.subagents.outputTokens;
 
-const totalContext = (s: SessionMetrics): number =>
+export const totalContext = (s: SessionMetrics): number =>
   s.main.contextTokens + (subagentContext(s) ?? 0);
 
-const subagentCell = (s: SessionMetrics): string => {
+export const subagentCell = (s: SessionMetrics): string => {
   const context = subagentContext(s);
   return context === null ? "n/a" : `${int(context)} (${int(s.subagents?.files ?? 0)} files)`;
 };
@@ -65,7 +65,7 @@ const metricsTable = (w3: SessionMetrics, vanilla: SessionMetrics): readonly str
   ];
 };
 
-const boardSection = (board: BoardMetrics): readonly string[] => {
+export const boardSection = (board: BoardMetrics): readonly string[] => {
   const findings = Object.entries(board.findingsByLabel)
     .map(([label, count]) => `${label}: ${int(count)}`)
     .join(", ");
@@ -99,7 +99,7 @@ const wallVerdict = (delta: number | null): string => {
   return "- Wall time: even.";
 };
 
-const duplicateVerdict = (board: BoardMetrics | null): string => {
+export const duplicateVerdict = (board: BoardMetrics | null): string => {
   if (board === null) return "- Duplicate work: no board log provided (--board) — not measured.";
   if (board.contestedClaims === 0 && board.reworkedNodes === 0)
     return "- Duplicate work: zero contested claims, zero reworked nodes.";
