@@ -275,6 +275,52 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     expect((await log.read()).at(-1)?.event.type).toBe("acl.denied");
   });
 
+  it("post echoes the version its OWN write produced, even when another commit interleaves mid-append", async () => {
+    // Found by W1-A: the echo used to re-read shared state after the append await.
+    const now = 0;
+    let n = 0;
+    const inner = createMemoryLog();
+    let appends = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const log = {
+      ...inner,
+      append: async (
+        meta: Parameters<typeof inner.append>[0],
+        ev: Parameters<typeof inner.append>[1],
+      ) => {
+        appends += 1;
+        if (appends === 2) await gate; // park the first UPDATE inside its append
+        return inner.append(meta, ev);
+      },
+    };
+    const session = createSession({
+      log,
+      acl: null,
+      sessionId: sessionId("s1"),
+      principal: null,
+      now: () => now,
+      newTxId: () => txId(`tx${n++}`),
+    });
+    const a = session.connect(agentId("a"));
+    const b = session.connect(agentId("b"));
+
+    await a.post(fileNode("a.ts")); // append #1, passes through — node at v1
+    const parked = a.post({
+      mutation: { kind: "UPDATE_NODE", id: "f1", expectedVersion: 1, props: { x: 1 } },
+    }); // applies v2, parks in append #2
+    const interleaved = await b.post({
+      mutation: { kind: "UPDATE_NODE", id: "f1", expectedVersion: 2, props: { y: 2 } },
+    }); // applies v3 while A is parked
+    release();
+    const echoed = await parked;
+
+    expect(echoed.ok && echoed.value.version).toBe(2); // A produced v2, not B's v3
+    expect(interleaved.ok && interleaved.value.version).toBe(3);
+  });
+
   it("status counts nodes, edges and only unexpired claims", async () => {
     const { as, tick } = makeSession();
     const scanner = as("scanner");

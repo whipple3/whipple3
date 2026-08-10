@@ -131,7 +131,10 @@ export const createSession = (deps: SessionDeps) => {
     return err(e);
   };
 
-  const commit = async (agent: AgentId, m: Mutation): Promise<Result<TxId, SessionError>> => {
+  const commit = async (
+    agent: AgentId,
+    m: Mutation,
+  ): Promise<Result<{ tx: TxId; version: Version | null }, SessionError>> => {
     if (deps.acl !== null) {
       const gate = checkAcl(deps.acl, agent, m, state);
       if (!gate.ok) return deny(agent, gate.error);
@@ -139,9 +142,15 @@ export const createSession = (deps: SessionDeps) => {
     const applied = apply(state, m);
     if (!applied.ok) return applied;
     state = applied.value;
+    // Captured BEFORE the append await: a concurrent commit may interleave there, and
+    // the caller must be echoed the version ITS write produced. (found by W1-A)
+    const touched =
+      m.kind === "ADD_NODE" || m.kind === "UPDATE_NODE"
+        ? (state.nodes.get(m.id)?.version ?? null)
+        : null;
     const tx = deps.newTxId();
     await deps.log.append(meta(agent, tx), { type: "graph.mutation", mutation: m });
-    return ok(tx);
+    return ok({ tx, version: touched });
   };
 
   /**
@@ -158,8 +167,7 @@ export const createSession = (deps: SessionDeps) => {
       const m = brandMutation(parsed.value.mutation);
       const committed = await commit(agent, m);
       if (!committed.ok) return committed;
-      const touched = m.kind === "ADD_EDGE" ? null : (state.nodes.get(m.id)?.version ?? null);
-      return ok({ txId: committed.value, version: touched });
+      return ok({ txId: committed.value.tx, version: committed.value.version });
     },
 
     async claim(input: unknown): Promise<Result<{ txId: TxId; expiresAt: number }, SessionError>> {
@@ -174,7 +182,7 @@ export const createSession = (deps: SessionDeps) => {
         ttlMs: parsed.value.ttlMs,
       });
       if (!committed.ok) return committed;
-      return ok({ txId: committed.value, expiresAt: at + parsed.value.ttlMs });
+      return ok({ txId: committed.value.tx, expiresAt: at + parsed.value.ttlMs });
     },
 
     async next(
