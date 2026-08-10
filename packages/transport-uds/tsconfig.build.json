@@ -1,5 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"],
+    // base turns maps on for dev; published dist ships no src, so maps would dangle
+    "declarationMap": false,
+    "sourceMap": false
+  },
   "include": ["src"]
 }
