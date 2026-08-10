@@ -1,9 +1,17 @@
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { edgeId, nodeId } from "../src/ids.js";
-import { apply } from "../src/mutation.js";
-import { defineEdge, defineNode, defineSlice, follow } from "../src/schema.js";
-import { sliceFor } from "../src/slice.js";
+import { apply, type Mutation, replay } from "../src/mutation.js";
+import {
+  defineEdge,
+  defineNode,
+  defineSlice,
+  type FollowRule,
+  follow,
+  type SliceDecl,
+} from "../src/schema.js";
+import { readableNeighborhood, sliceFor } from "../src/slice.js";
 import { emptyState, type GraphState } from "../src/state.js";
 
 const mustApply = (s: GraphState, m: Parameters<typeof apply>[1]): GraphState => {
@@ -152,5 +160,96 @@ describe("sliceFor — role-declared slices (SPEC §4.7, ROADMAP Stage 2)", () =
     const slice = sliceFor(s, nodeId("f1"), AuditorSlice, ALL);
     expect(ids(slice)).toEqual(["f1", "i1", "i2"]);
     expect(edgeIds(slice)).toEqual(["e1", "e2"]);
+  });
+});
+
+/** One shared label pool for nodes, edges, decls AND policies — stresses collisions. */
+const POOL = ["CodeFile", "SecurityIssue", "Fix", "HAS_ISSUE", "FIXED_BY"];
+
+const arbNode = fc.record({
+  kind: fc.constant("ADD_NODE" as const),
+  id: fc.constantFrom("n1", "n2", "n3", "n4", "n5").map(nodeId),
+  label: fc.constantFrom(...POOL),
+  props: fc.constant<Readonly<Record<string, unknown>>>({}),
+});
+const arbEdge = fc.record({
+  kind: fc.constant("ADD_EDGE" as const),
+  id: fc.constantFrom("e1", "e2", "e3", "e4", "e5").map(edgeId),
+  label: fc.constantFrom(...POOL),
+  from: fc.constantFrom("n1", "n2", "n3", "n4", "n5").map(nodeId),
+  to: fc.constantFrom("n1", "n2", "n3", "n4", "n5").map(nodeId),
+});
+const arbMutations = fc.array(fc.oneof(arbNode, arbEdge) as fc.Arbitrary<Mutation>, {
+  maxLength: 30,
+});
+
+const arbRule = (depth: number): fc.Arbitrary<FollowRule> =>
+  fc.record({
+    edge: fc.constantFrom(...POOL),
+    from: fc.constantFrom(...POOL),
+    to: fc.constantFrom(...POOL),
+    hops: fc.integer({ min: 0, max: 3 }),
+    next: depth === 0 ? fc.constant([]) : fc.array(arbRule(depth - 1), { maxLength: 2 }),
+  });
+const arbDecl: fc.Arbitrary<SliceDecl> = fc.record({
+  kind: fc.constant("slice" as const),
+  root: fc.constantFrom(...POOL),
+  follow: fc.array(arbRule(1), { maxLength: 3 }),
+});
+
+const totalHops = (rules: readonly FollowRule[]): number =>
+  rules.reduce((deepest, r) => Math.max(deepest, r.hops + totalHops(r.next)), 0);
+
+const flatRules = (rules: readonly FollowRule[]): readonly FollowRule[] =>
+  rules.flatMap((r) => [r, ...flatRules(r.next)]);
+
+describe("sliceFor invariants (fast-check)", () => {
+  it("property: NARROW, never widen — sliceFor ⊆ readableNeighborhood, any decl/policy/graph", () => {
+    fc.assert(
+      fc.property(
+        arbMutations,
+        arbDecl,
+        fc.subarray(POOL),
+        fc.constantFrom("n1", "n2", "n3", "n4", "n5").map(nodeId),
+        (ms, decl, readable, root) => {
+          const { state } = replay(ms, emptyState());
+          const slice = sliceFor(state, root, decl, readable);
+          const rn = readableNeighborhood(state, root, totalHops(decl.follow), readable);
+          const rnNodes = new Set(rn.nodes.map((n) => n.id));
+          const rnEdges = new Set(rn.edges.map((e) => e.id));
+          for (const n of slice.nodes) expect(rnNodes.has(n.id)).toBe(true);
+          for (const e of slice.edges) expect(rnEdges.has(e.id)).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("property: everything emitted is BOTH declared and readable, and edges never dangle", () => {
+    fc.assert(
+      fc.property(
+        arbMutations,
+        arbDecl,
+        fc.subarray(POOL),
+        fc.constantFrom("n1", "n2", "n3", "n4", "n5").map(nodeId),
+        (ms, decl, readable, root) => {
+          const { state } = replay(ms, emptyState());
+          const slice = sliceFor(state, root, decl, readable);
+          const rules = flatRules(decl.follow);
+          const declaredNodes = new Set([decl.root, ...rules.flatMap((r) => [r.from, r.to])]);
+          const declaredEdges = new Set(rules.map((r) => r.edge));
+          for (const n of slice.nodes) {
+            expect(readable).toContain(n.label);
+            expect(declaredNodes.has(n.label)).toBe(true);
+          }
+          const sliceNodeIds = new Set(slice.nodes.map((n) => n.id));
+          for (const e of slice.edges) {
+            expect(readable).toContain(e.label);
+            expect(declaredEdges.has(e.label)).toBe(true);
+            expect(sliceNodeIds.has(e.from)).toBe(true);
+            expect(sliceNodeIds.has(e.to)).toBe(true);
+          }
+        },
+      ),
+    );
   });
 });
