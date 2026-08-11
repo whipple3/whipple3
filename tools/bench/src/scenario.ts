@@ -35,6 +35,9 @@ const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)
 
 const spawnCli = (cwd: string, children: ChildProcessWithoutNullStreams[], argv: string[]) => {
   const child = spawn("node", [CLI, ...argv], { cwd });
+  // StringDecoder semantics: a multi-byte character split across chunks must not
+  // become U+FFFD (see transport-uds utf8.test.ts for the failure mode).
+  child.stdout.setEncoding("utf8");
   children.push(child);
   return child;
 };
@@ -43,8 +46,8 @@ const waitForStdout = async (child: ChildProcessWithoutNullStreams, text: string
   let seen = "";
   await new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`timed out waiting for "${text}"`)), 10_000);
-    child.stdout.on("data", (chunk: Buffer) => {
-      seen += chunk.toString("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      seen += chunk;
       if (seen.includes(text)) {
         clearTimeout(timer);
         resolve();
@@ -56,8 +59,8 @@ const waitForStdout = async (child: ChildProcessWithoutNullStreams, text: string
 const rpcClient = (child: ChildProcessWithoutNullStreams) => {
   const pending = new Map<number, (reply: z.output<typeof replySchema>) => void>();
   let buffer = "";
-  child.stdout.on("data", (chunk: Buffer) => {
-    buffer += chunk.toString("utf8");
+  child.stdout.on("data", (chunk: string) => {
+    buffer += chunk;
     for (let cut = buffer.indexOf("\n"); cut >= 0; cut = buffer.indexOf("\n")) {
       const line = buffer.slice(0, cut).trim();
       buffer = buffer.slice(cut + 1);
