@@ -10,6 +10,8 @@ import { z } from "zod";
 
 /** A lease is a work grant, not ownership: an unbounded ttl would lock a node forever. */
 export const CLAIM_TTL_MAX_MS = 3_600_000;
+/** Two minutes: enough for one work item; a crashed worker frees its node soon after. */
+export const CLAIM_TTL_DEFAULT_MS = 120_000;
 /** The graph is the control plane — paths/hashes/status, never contents. (SPEC §4.7) */
 export const PROPS_MAX_BYTES = 16_384;
 const NAME_MAX = 256;
@@ -64,7 +66,7 @@ export const toolInputs = {
   }),
   blackboard_claim: z.object({
     id: boardName,
-    ttlMs: z.number().int().positive().max(CLAIM_TTL_MAX_MS).default(120_000),
+    ttlMs: z.number().int().positive().max(CLAIM_TTL_MAX_MS).default(CLAIM_TTL_DEFAULT_MS),
   }),
   blackboard_release: z.object({
     id: boardName,
