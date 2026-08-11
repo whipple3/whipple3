@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="whipple3">
+  <!-- whipple3 — a compound whippletree for three. The pivot sits at one third, so two
+     pulling on the short arm equal one on the long arm and the bar hangs level.
+     It is also a tree: three agents under one load. Sienna = the node holding a claim. -->
+  <g stroke="#14141f" stroke-width="14" stroke-linecap="round" fill="none">
+    <path d="M64 28 V60"/><path d="M26 60 H102"/>
+    <path d="M26 60 V84"/><path d="M64 60 V84"/><path d="M102 60 V84"/>
+  </g>
+  <circle cx="26" cy="95" r="11" fill="#14141f"/><circle cx="64" cy="95" r="11" fill="#14141f"/>
+  <circle cx="102" cy="95" r="11" fill="#d95d39"/>
+</svg>

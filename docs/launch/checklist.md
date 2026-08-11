@@ -30,9 +30,10 @@ still reviews the diff/output).
       macOS, ECONNREFUSED on Linux; the dial error advised deleting a possibly-real
       file). Fixed in transport-uds (stat before advising rm); second run **green**
       (2026-08-11). Cloud CI earned its keep on day one.
-- [ ] **[Michael]** Create the npm org / verify the `whipple3` package name and
-      `@whipple3` scope are still free (re-verified 2026-08-11: package 404 on the
-      registry, org page "Scope not found"; re-verify at publish).
+- [x] **[Michael]** npm org `whipple3` created (2026-08-11, owner `dewscntd`) — the
+      `@whipple3` scope is claimed. Still pending before publish: `npm login` on the
+      publish machine, and **enable 2FA on the account** (members page showed 2FA
+      disabled; publish will want an OTP).
 
 ## 2. Validation (the proofs the posts lean on)
 
