@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/whipple3-mark-dark.svg">
+  <img src="assets/whipple3-mark.svg" alt="whipple3" width="88" align="right">
+</picture>
+
 # whipple3
 
 > **whipple3** (from *whippletree* — the crossbar that lets a team of harnessed horses pull
@@ -133,6 +138,21 @@ whipple3 sits relative to LangGraph, CrewAI, Letta and the CLI agents is in
 version: functional core / imperative shell; the log is the truth and the graph is a view;
 pull-mode dispatch for host runtimes (Claude Code) now, push-mode reactive runtime later;
 MCP as the agent-facing surface — model-agnostic by construction, bring your own key.
+
+## The mark
+
+<img src="assets/whipple3-mark.svg#gh-light-mode-only" alt="" width="64" align="left" hspace="18" vspace="4">
+<img src="assets/whipple3-mark-dark.svg#gh-dark-mode-only" alt="" width="64" align="left" hspace="18" vspace="4">
+
+A compound whippletree for three. The pivot sits at one third, so two pulling on the short arm
+equal one on the long arm — and the bar hangs level. Fair distribution, drawn. It is also the
+graph: three agents under one load, with the tinted node the one currently holding a claim.
+
+Files in [`assets/`](./assets): `whipple3-mark.svg` and its `-dark` pair, `whipple3-icon.svg`
+(reduced, for small sizes) and `whipple3-badge.svg` (dark tile, for favicons and avatars — a
+bare mark goes muddy under about 24px).
+
+<br clear="left">
 
 ## License
 
