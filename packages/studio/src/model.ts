@@ -39,6 +39,10 @@ export const foldRecord = (model: StudioModel, record: LogRecord): StudioModel =
       held.delete(event.nodeId);
       return { ...model, held };
     }
+    // The board discarded its working graph (ADR-009) — the mirror must too, tints
+    // included. Time travel still reaches the pre-purge world: the log keeps it.
+    case "session.purged":
+      return emptyModel();
     default:
       return model;
   }

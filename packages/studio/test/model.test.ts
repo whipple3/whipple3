@@ -57,6 +57,19 @@ describe("foldRecord", () => {
     expect(model.graph.nodes.get(nodeId("f1"))?.version).toBe(1);
   });
 
+  it("session.purged discards the working graph and every tint, like the board it mirrors", () => {
+    const model = fold([
+      addNode(0, "f1"),
+      acquired(1, "f1", "a1"),
+      recordOf(2, { type: "session.purged" }),
+      addNode(3, "f2"),
+    ]);
+
+    expect(model.graph.nodes.has(nodeId("f1"))).toBe(false);
+    expect(model.held.size).toBe(0);
+    expect(model.graph.nodes.has(nodeId("f2"))).toBe(true);
+  });
+
   it("tints on claim.acquired: holder + since from the record meta", () => {
     const model = fold([addNode(0, "f1"), acquired(1, "f1", "auditor-1")]);
 
