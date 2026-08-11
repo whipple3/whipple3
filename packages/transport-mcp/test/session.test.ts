@@ -466,6 +466,23 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     });
   });
 
+  it("status counts labels named like Object.prototype members without corruption", async () => {
+    // "constructor" and "__proto__" pass the boardName alphabet; naive object-literal
+    // accumulation turns the first into a string and swallows the second entirely.
+    const { as } = makeSession();
+    const w = as("writer");
+    await w.post({ mutation: { kind: "ADD_NODE", id: "c1", label: "constructor", props: {} } });
+    await w.post({ mutation: { kind: "ADD_NODE", id: "p1", label: "__proto__", props: {} } });
+    const status = await w.status();
+    expect(status.nodes).toBe(2);
+    expect(status.byLabel).toEqual(
+      Object.fromEntries([
+        ["constructor", 1],
+        ["__proto__", 1],
+      ]),
+    );
+  });
+
   it("status is async — the one shape every transport, including a socket proxy, can honor", async () => {
     const { as, tick } = makeSession();
     const scanner = as("scanner");
