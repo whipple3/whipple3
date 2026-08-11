@@ -1,11 +1,14 @@
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { agentId, nodeId, version } from "../src/ids.js";
+import { agentId, edgeId, nodeId, version } from "../src/ids.js";
 import { apply, type Mutation, replay } from "../src/mutation.js";
-import { emptyState } from "../src/state.js";
+import { emptyState, type GraphState } from "../src/state.js";
 
-// A small ID pool on purpose: collisions exercise NODE_EXISTS / ALREADY_CLAIMED paths.
+// A small ID pool on purpose: collisions exercise NODE_EXISTS / ALREADY_CLAIMED paths,
+// and small versions exercise VERSION_CONFLICT. All five kinds appear, so the replay
+// properties cover the whole reducer, rejects included.
 const arbNodeId = fc.constantFrom("n1", "n2", "n3", "n4").map(nodeId);
+const arbAgentId = fc.constantFrom("a1", "a2").map(agentId);
 
 const arbMutation: fc.Arbitrary<Mutation> = fc.oneof(
   fc.record({
@@ -15,13 +18,38 @@ const arbMutation: fc.Arbitrary<Mutation> = fc.oneof(
     props: fc.constant<Readonly<Record<string, unknown>>>({}),
   }),
   fc.record({
+    kind: fc.constant("UPDATE_NODE" as const),
+    id: arbNodeId,
+    expectedVersion: fc.integer({ min: 1, max: 3 }).map(version),
+    props: fc.constant<Readonly<Record<string, unknown>>>({ touched: true }),
+  }),
+  fc.record({
+    kind: fc.constant("ADD_EDGE" as const),
+    id: fc.constantFrom("e1", "e2", "e3").map(edgeId),
+    label: fc.constantFrom("HAS_ISSUE"),
+    from: arbNodeId,
+    to: arbNodeId,
+  }),
+  fc.record({
     kind: fc.constant("CLAIM_NODE" as const),
     id: arbNodeId,
-    agentId: fc.constantFrom("a1", "a2").map(agentId),
+    agentId: arbAgentId,
     now: fc.nat(),
     ttlMs: fc.nat(),
   }),
+  fc.record({
+    kind: fc.constant("RELEASE_NODE" as const),
+    id: arbNodeId,
+    agentId: arbAgentId,
+  }),
 );
+
+/** Structural snapshot for before/after comparison — entries, not map identity. */
+const entriesOf = (s: GraphState) => ({
+  nodes: [...s.nodes.entries()],
+  edges: [...s.edges.entries()],
+  claims: [...s.claims.entries()],
+});
 
 describe("core invariants (SPEC §9.4)", () => {
   it("replay is deterministic", () => {
@@ -31,6 +59,20 @@ describe("core invariants (SPEC §9.4)", () => {
         const b = replay(ms, emptyState());
         expect(a.state).toEqual(b.state);
         expect(a.rejected).toEqual(b.rejected);
+      }),
+    );
+  });
+
+  it("apply never mutates its input state", () => {
+    fc.assert(
+      fc.property(fc.array(arbMutation, { maxLength: 30 }), (ms) => {
+        let state = emptyState();
+        for (const m of ms) {
+          const before = entriesOf(state);
+          const r = apply(state, m);
+          expect(entriesOf(state)).toEqual(before);
+          if (r.ok) state = r.value;
+        }
       }),
     );
   });
