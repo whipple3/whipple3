@@ -6,9 +6,12 @@ still reviews the diff/output).
 
 ## 0. Repo truth (before anything leaves the machine)
 
-- [ ] **[automatable]** Wave 3 integration pass merged (W3-A bench, W3-B packaging,
-      W3-C launch kit); full gate green from a clean clone:
-      `pnpm typecheck && pnpm lint && pnpm depcruise && pnpm test && pnpm build`.
+- [x] **[automatable]** Wave 3 integration pass merged (W3-A bench, W3-B packaging,
+      W3-C launch kit); full gate green from a clean clone (verified 2026-08-11):
+      `pnpm typecheck && pnpm lint && pnpm depcruise && pnpm build && pnpm test`.
+      Order matters — **build before test**: the CLI e2e suites run the built
+      `dist/main.js` and fail on a clean clone otherwise (checklist/ROADMAP said
+      test-first; fixed 2026-08-11).
 - [x] **[automatable]** Stale-doc sweep (done 2026-08-11): the two items originally
       listed here (root README tool count, plugin README `--policy`) turned out fixed
       already; the review sweep caught the real stragglers — ARCHITECTURE.md tool count
@@ -18,15 +21,15 @@ still reviews the diff/output).
 
 ## 1. Legal & admin
 
-- [ ] **[Michael]** LICENSE full legal name. Line 3 is a placeholder today:
-      `Copyright (c) 2026 Michael <TODO: full legal name before first publish>`.
-      Nothing publishes — npm, GitHub, posts — while the TODO is in the file.
-- [ ] **[Michael]** Create the GitHub org (`github.com/whipple3` — verified free
-      2026-08-10; re-verify, it was a while ago) and the `whipple3` repo.
+- [x] **[Michael]** LICENSE full legal name — `Copyright (c) 2026 Michael Vexler`
+      (set 2026-08-11). The publish gate this imposed is lifted.
+- [ ] **[Michael]** Create the GitHub org (`github.com/whipple3` — re-verified free
+      2026-08-11) and the `whipple3` repo.
 - [ ] **[Michael]** `git remote add origin … && git push` main; enable the Actions
       matrix (SPEC §15 TODO). First CI run green on GitHub, not just locally.
 - [ ] **[Michael]** Create the npm org / verify the `whipple3` package name and
-      `@whipple3` scope are still free (verified 2026-08-10; re-verify at publish).
+      `@whipple3` scope are still free (re-verified 2026-08-11: package 404 on the
+      registry, org page "Scope not found"; re-verify at publish).
 
 ## 2. Validation (the proofs the posts lean on)
 
@@ -44,9 +47,12 @@ still reviews the diff/output).
 
 ## 3. Publish
 
-- [ ] **[automatable]** Version bump to 0.1.0 across `packages/*/package.json`
-      (+ the CLI's citty `version` string, currently "0.0.0"); `npm pack` smoke test
-      per package (W3-B's tarball check).
+- [x] **[automatable]** Version bump to 0.1.0 across `packages/*/package.json`
+      (+ the CLI's citty `version` string) — found already done, verified 2026-08-11.
+      `pnpm pack` smoke for core / log / transport-mcp / transport-uds: dist + LICENSE
+      + README present, zero `workspace:` deps in packed manifests; the cli tarball is
+      covered by `pack.smoke.test` (green from the clean clone). Studio is `private` —
+      correctly excluded from publish.
 - [ ] **[Michael]** `pnpm publish` — MUST be pnpm, not npm: the `workspace:*` rewrite,
       the `publishConfig` exports swap, and root-LICENSE injection are pnpm behaviors
       (`npm publish` would ship a broken manifest — W3-B). Dependency order for the four
