@@ -72,9 +72,6 @@ importers:
       '@whipple3/log':
         specifier: workspace:*
         version: link:../log
-      '@whipple3/transport-mcp':
-        specifier: workspace:*
-        version: link:../transport-mcp
       graphology:
         specifier: ^0.26.0
         version: 0.26.0(graphology-types@0.24.8)
@@ -85,6 +82,9 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3(graphology-types@0.24.8)
     devDependencies:
+      '@whipple3/transport-mcp':
+        specifier: workspace:*
+        version: link:../transport-mcp
       graphology-types:
         specifier: ^0.24.8
         version: 0.24.8

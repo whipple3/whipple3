@@ -12,12 +12,12 @@
   "dependencies": {
     "@whipple3/core": "workspace:*",
     "@whipple3/log": "workspace:*",
-    "@whipple3/transport-mcp": "workspace:*",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "sigma": "^3.0.3"
   },
   "devDependencies": {
+    "@whipple3/transport-mcp": "workspace:*",
     "graphology-types": "^0.24.8",
     "vite": "^8.2.1"
   }

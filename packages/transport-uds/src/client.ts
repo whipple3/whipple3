@@ -60,6 +60,29 @@ export const connectBoard = (opts: ConnectBoardOptions): Promise<RemoteAgentConn
       socket.destroy();
     };
 
+    const request = <T>(op: Op, input?: unknown): Promise<T> => {
+      if (socket.destroyed) return Promise.reject(new Error("board connection closed"));
+      const id = nextId++;
+      return new Promise<T>((resolve, reject) => {
+        // The envelope was Zod-parsed above; the result payload is the AgentConnection
+        // method's own return value, produced by this same codebase inside the serve
+        // process. Re-validating it here would mean re-deriving every core Result
+        // schema — a trusted same-repo boundary, so: one commented cast.
+        pending.set(id, { resolve: (r) => resolve(r as T), reject });
+        socket.write(encodeFrame({ kind: "req", id, op, input }));
+      });
+    };
+
+    const board: RemoteAgentConnection = {
+      post: (input) => request("post", input),
+      claim: (input) => request("claim", input),
+      release: (input) => request("release", input),
+      next: (input) => request("next", input),
+      read: (input) => request("read", input),
+      status: () => request("status"),
+      close: () => socket.destroy(),
+    };
+
     const onFrame = (frame: ServerFrame): void => {
       if (frame.kind === "ready") {
         ready = true;
@@ -107,27 +130,4 @@ export const connectBoard = (opts: ConnectBoardOptions): Promise<RemoteAgentConn
     socket.once("connect", () =>
       socket.write(encodeFrame({ kind: "hello", v: PROTOCOL_VERSION, agentId: opts.agentId })),
     );
-
-    const request = <T>(op: Op, input?: unknown): Promise<T> => {
-      if (socket.destroyed) return Promise.reject(new Error("board connection closed"));
-      const id = nextId++;
-      return new Promise<T>((resolve, reject) => {
-        // The envelope was Zod-parsed above; the result payload is the AgentConnection
-        // method's own return value, produced by this same codebase inside the serve
-        // process. Re-validating it here would mean re-deriving every core Result
-        // schema — a trusted same-repo boundary, so: one commented cast.
-        pending.set(id, { resolve: (r) => resolve(r as T), reject });
-        socket.write(encodeFrame({ kind: "req", id, op, input }));
-      });
-    };
-
-    const board: RemoteAgentConnection = {
-      post: (input) => request("post", input),
-      claim: (input) => request("claim", input),
-      release: (input) => request("release", input),
-      next: (input) => request("next", input),
-      read: (input) => request("read", input),
-      status: () => request("status"),
-      close: () => socket.destroy(),
-    };
   });
