@@ -84,7 +84,13 @@ export const connectBoard = (opts: ConnectBoardOptions): Promise<RemoteAgentConn
     // 'data' events must be held by the StringDecoder, or it silently becomes U+FFFD.
     socket.setEncoding("utf8");
     socket.on("data", (chunk: string) => {
-      for (const line of push(chunk)) {
+      let lines: string[];
+      try {
+        lines = push(chunk);
+      } catch {
+        return failAll("board sent a runaway frame"); // the buffer cap in frames.ts
+      }
+      for (const line of lines) {
         let raw: unknown;
         try {
           raw = JSON.parse(line);

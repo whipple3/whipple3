@@ -142,6 +142,15 @@ describe("board server — protocol errors are structured frames, never prose", 
     expect(frames).toEqual([{ kind: "err", id: null, error: { code: "BAD_FRAME" } }]);
   });
 
+  it("a runaway line is refused with BAD_FRAME instead of buffered without bound", async () => {
+    const { socketPath } = await makeBoard();
+    const { socket, frames, closed } = rawSocket(socketPath);
+    // 9Mi units with no newline — past the buffer cap, nowhere near an OOM.
+    socket.write("x".repeat(9 * 1024 * 1024));
+    await closed;
+    expect(frames).toEqual([{ kind: "err", id: null, error: { code: "BAD_FRAME" } }]);
+  });
+
   it("a second hello on a bound connection is BAD_FRAME — one socket, one identity", async () => {
     const { socketPath } = await makeBoard();
     const { socket, frames, closed } = rawSocket(socketPath);

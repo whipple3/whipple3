@@ -53,3 +53,18 @@ describe("line buffer — NDJSON framing over an arbitrary chunk stream", () => 
     expect(push("\n\n{'x':1}\n\n")).toEqual(["{'x':1}"]);
   });
 });
+
+describe("line buffer — a runaway line cannot hold the process's memory (DoS cap)", () => {
+  it("throws once the un-terminated tail exceeds the cap, and drops the tail", () => {
+    const push = createLineBuffer(16);
+    expect(push("0123456789")).toEqual([]);
+    expect(() => push("0123456789")).toThrow(/cap/);
+    // the poisoned tail is gone — the buffer is usable again
+    expect(push("ok\n")).toEqual(["ok"]);
+  });
+
+  it("throws on a completed line over the cap — parsing it would be the same spike", () => {
+    const push = createLineBuffer(16);
+    expect(() => push(`${"x".repeat(32)}\n`)).toThrow(/cap/);
+  });
+});

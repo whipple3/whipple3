@@ -47,12 +47,28 @@ export type ServerFrame = z.output<typeof serverFrame>;
 export const encodeFrame = (frame: ClientFrame | ServerFrame): string =>
   `${JSON.stringify(frame)}\n`;
 
-/** Chunk → complete lines; the partial tail waits for its newline. Empty lines drop. */
-export const createLineBuffer = (): ((chunk: string) => string[]) => {
+/**
+ * DoS bound on a single line, in UTF-16 units (≈2 bytes each). Far above any legitimate
+ * frame — the props budget is 16 KiB (tools.ts) and a big read slice is a few hundred KB —
+ * and far below holding the shared serve process's memory hostage. The session-layer
+ * budgets cannot help here: they run only after a full frame is buffered and parsed.
+ */
+export const MAX_LINE_UNITS = 8 * 1024 * 1024;
+
+/**
+ * Chunk → complete lines; the partial tail waits for its newline. Empty lines drop.
+ * A line over `maxLineUnits` — terminated or not — throws after dropping the tail:
+ * a process-edge exception the socket owner answers with BAD_FRAME, then hangs up.
+ */
+export const createLineBuffer = (maxLineUnits = MAX_LINE_UNITS): ((chunk: string) => string[]) => {
   let tail = "";
   return (chunk) => {
     const pieces = (tail + chunk).split("\n");
     tail = pieces.pop() ?? "";
+    if (tail.length > maxLineUnits || pieces.some((line) => line.length > maxLineUnits)) {
+      tail = "";
+      throw new Error(`line exceeds the ${maxLineUnits}-unit cap`);
+    }
     return pieces.filter((line) => line !== "");
   };
 };
