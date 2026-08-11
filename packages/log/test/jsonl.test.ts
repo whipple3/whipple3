@@ -76,4 +76,28 @@ describe("jsonl adapter — incremental read over byte offsets", () => {
     const all = await second.read();
     expect(all.map((r) => r.seq)).toEqual([0, 1, 2]);
   });
+
+  it("a fresh appender recovers from a dead writer's torn trailing line", async () => {
+    // Crash mid-append: the dead writer flushed only part of its line, no newline.
+    // The torn record never happened (it was never readable); a fresh appender must
+    // not glue its own first record onto the torn bytes or reuse their would-be seq.
+    const path = tmpFile();
+    const dead = createJsonlLog(path);
+    await dead.append(meta(1), ev);
+    await dead.append(meta(2), ev);
+    appendFileSync(path, '{"seq":2,"meta":{"tx', "utf8");
+
+    const fresh = createJsonlLog(path);
+    const recovered = await fresh.append(meta(3), ev);
+    expect(recovered.seq).toBe(2);
+    expect((await fresh.read()).map((r) => [r.seq, r.meta.ts])).toEqual([
+      [0, 1],
+      [1, 2],
+      [2, 3],
+    ]);
+
+    // A later reader indexing the file from scratch agrees — no corrupt line remains.
+    const reader = createJsonlLog(path);
+    expect((await reader.read()).map((r) => r.seq)).toEqual([0, 1, 2]);
+  });
 });

@@ -1,4 +1,12 @@
-import { appendFileSync, closeSync, existsSync, openSync, readSync, statSync } from "node:fs";
+import {
+  appendFileSync,
+  closeSync,
+  existsSync,
+  openSync,
+  readSync,
+  statSync,
+  truncateSync,
+} from "node:fs";
 import type { EventMeta, LogRecord, Whipple3Event } from "@whipple3/core";
 import type { LogStore } from "./port.js";
 
@@ -35,11 +43,14 @@ export const createJsonlLog = (path: string): LogStore => {
     }
   };
 
-  /** Extend the index over bytes appended since the last scan (possibly by another process). */
-  const scan = (): void => {
-    if (!existsSync(path)) return;
+  /**
+   * Extend the index over bytes appended since the last scan (possibly by another
+   * process). Returns the file size it observed — 0 when the file is absent.
+   */
+  const scan = (): number => {
+    if (!existsSync(path)) return 0;
     const size = statSync(path).size;
-    if (size <= indexed) return;
+    if (size <= indexed) return size;
     const chunk = readChunk(indexed, size);
     let consumed = 0;
     for (let nl = chunk.indexOf(NEWLINE); nl >= 0; nl = chunk.indexOf(NEWLINE, consumed)) {
@@ -47,11 +58,16 @@ export const createJsonlLog = (path: string): LogStore => {
       consumed = nl + 1;
     }
     indexed += consumed; // a trailing partial line stays unindexed until its newline lands
+    return size;
   };
 
   return {
     append(meta: EventMeta, event: Whipple3Event): Promise<LogRecord> {
-      scan(); // seq must account for anything a foreign writer appended meanwhile
+      const size = scan(); // seq must account for anything a foreign writer appended meanwhile
+      // WAL-style recovery: a dead appender's torn trailing line was never readable
+      // (reads stop at `indexed`) and never got its seq — but appending after it would
+      // glue two records into one corrupt line. Drop it before taking over the file.
+      if (size > indexed) truncateSync(path, indexed);
       const record: LogRecord = { seq: offsets.length, meta, event };
       const line = `${JSON.stringify(record)}\n`;
       appendFileSync(path, line, "utf8");
@@ -69,6 +85,9 @@ export const createJsonlLog = (path: string): LogStore => {
         .toString("utf8")
         .split("\n")
         .filter((l) => l !== "")
+        // Trusted same-repo boundary: the concurrency contract above admits exactly
+        // one live appender, and every writer is this codebase serializing LogRecord.
+        // Re-validating here would mean re-deriving every core schema — so: one cast.
         .map((l) => JSON.parse(l) as LogRecord);
       return Promise.resolve(records);
     },
