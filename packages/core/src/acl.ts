@@ -12,6 +12,12 @@ export interface AgentAcl {
 /** agentId -> its allowed labels, both directions. Enforced by the engine on every access. */
 export type AclPolicy = Readonly<Record<string, AgentAcl>>;
 
+/**
+ * Denials NAME the label, deliberately — in the acl.denied audit event and in the error
+ * the agent receives (the read path pins this in tests). Labels are shared schema
+ * vocabulary, not secrets; what the ACL protects is nodes' existence-in-slices and
+ * props, which a denial never carries. Auditability outranks hiding a label name.
+ */
 export interface AclError {
   readonly code: "ACL_DENIED_WRITE" | "ACL_DENIED_READ";
   readonly agentId: AgentId;
@@ -41,7 +47,7 @@ export const checkAcl = (
 ): Result<null, AclError> => {
   const label = labelOf(m, state);
   if (label === null) return ok(null); // existence errors are apply()'s job, not ACL's
-  if (policy[agent as string]?.write.includes(label) === true) return ok(null);
+  if (policy[agent]?.write.includes(label) === true) return ok(null);
   return err({ code: "ACL_DENIED_WRITE", agentId: agent, label });
 };
 
@@ -50,10 +56,10 @@ export const checkRead = (
   agent: AgentId,
   label: string,
 ): Result<null, AclError> => {
-  if (policy[agent as string]?.read.includes(label) === true) return ok(null);
+  if (policy[agent]?.read.includes(label) === true) return ok(null);
   return err({ code: "ACL_DENIED_READ", agentId: agent, label });
 };
 
 /** The reader's allowed labels, for slice filtering. Policy shape knowledge stays here. */
 export const readableLabels = (policy: AclPolicy, agent: AgentId): readonly string[] =>
-  policy[agent as string]?.read ?? [];
+  policy[agent]?.read ?? [];

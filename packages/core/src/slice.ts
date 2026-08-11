@@ -1,3 +1,9 @@
+/**
+ * Context slicing: the engine computes the minimal slice and the agent cannot read
+ * beyond it. (SPEC §4.7) Two tiers: BFS neighborhood (depth-bounded) and role-declared
+ * slices (`sliceFor`, declaration-bounded). `availableWork` is the separate pull-mode
+ * work queue (§4.4).
+ */
 import type { NodeId } from "./ids.js";
 import type { FollowRule, SliceDecl, Trigger } from "./schema.js";
 import type { EdgeRecord, GraphState, NodeRecord } from "./state.js";
@@ -7,11 +13,6 @@ export interface Slice {
   readonly edges: readonly EdgeRecord[];
 }
 
-/**
- * Context slicing, push-model: the engine computes the minimal slice and injects it at
- * dispatch — agents cannot read beyond it. (SPEC §4.7) Two tiers: BFS neighborhood
- * (depth-bounded) and role-declared slices (`sliceFor`, declaration-bounded).
- */
 /**
  * The pull-mode work queue: `when()` triggers compile to exactly this query. (SPEC §4.4)
  * A valid (unexpired) claim hides a node from every agent — holders already have their work.
@@ -105,6 +106,49 @@ const pairMatches = (a: string, b: string, rule: FollowRule): boolean =>
  * traversal through itself. The declaration can only NARROW the read ACL — every check
  * intersects with `readable` — so sliceFor(...) ⊆ readableNeighborhood(...), by property test.
  */
+/**
+ * Up to rule.hops consecutive hops along rule.edge from `starts`; pure — returns every
+ * node the rule reached (readable ones only), and nothing else changes.
+ */
+const expand = (
+  state: GraphState,
+  allowed: ReadonlySet<string>,
+  starts: ReadonlySet<NodeId>,
+  rule: FollowRule,
+): ReadonlySet<NodeId> => {
+  const reached = new Set<NodeId>();
+  if (!allowed.has(rule.edge)) return reached;
+  const visited = new Set(starts);
+  let frontier = starts;
+  for (let h = 0; h < rule.hops && frontier.size > 0; h++) {
+    const next = new Set<NodeId>();
+    for (const edge of state.edges.values()) {
+      if (edge.label !== rule.edge) continue;
+      for (const [near, far] of [
+        [edge.from, edge.to],
+        [edge.to, edge.from],
+      ] as const) {
+        if (!frontier.has(near)) continue;
+        const nearNode = state.nodes.get(near);
+        const farNode = state.nodes.get(far);
+        if (nearNode === undefined || farNode === undefined) continue;
+        if (!pairMatches(nearNode.label, farNode.label, rule)) continue;
+        if (!allowed.has(farNode.label)) continue;
+        reached.add(far);
+        if (!visited.has(far)) {
+          visited.add(far);
+          next.add(far);
+        }
+      }
+    }
+    frontier = next;
+  }
+  return reached;
+};
+
+const flatten = (rules: readonly FollowRule[]): readonly FollowRule[] =>
+  rules.flatMap((r) => [r, ...flatten(r.next)]);
+
 export const sliceFor = (
   state: GraphState,
   root: NodeId,
@@ -118,57 +162,16 @@ export const sliceFor = (
   }
 
   const seen = new Set<NodeId>([root]);
-
-  /** Up to rule.hops consecutive hops along rule.edge; returns every node the rule reached. */
-  const expand = (starts: ReadonlySet<NodeId>, rule: FollowRule): ReadonlySet<NodeId> => {
-    const reached = new Set<NodeId>();
-    if (!allowed.has(rule.edge)) return reached;
-    const visited = new Set(starts);
-    let frontier = starts;
-    for (let h = 0; h < rule.hops && frontier.size > 0; h++) {
-      const next = new Set<NodeId>();
-      for (const edge of state.edges.values()) {
-        if (edge.label !== rule.edge) continue;
-        for (const [near, far] of [
-          [edge.from, edge.to],
-          [edge.to, edge.from],
-        ] as const) {
-          if (!frontier.has(near)) continue;
-          const nearNode = state.nodes.get(near);
-          const farNode = state.nodes.get(far);
-          if (nearNode === undefined || farNode === undefined) continue;
-          if (!pairMatches(nearNode.label, farNode.label, rule)) continue;
-          if (!allowed.has(farNode.label)) continue;
-          reached.add(far);
-          seen.add(far);
-          if (!visited.has(far)) {
-            visited.add(far);
-            next.add(far);
-          }
-        }
-      }
-      frontier = next;
-    }
-    return reached;
-  };
-
   const walk = (starts: ReadonlySet<NodeId>, rules: readonly FollowRule[]): void => {
     for (const rule of rules) {
-      const reached = expand(starts, rule);
+      const reached = expand(state, allowed, starts, rule);
+      for (const id of reached) seen.add(id);
       if (reached.size > 0) walk(reached, rule.next);
     }
   };
   walk(new Set([root]), decl.follow);
 
-  const flat: FollowRule[] = [];
-  const flatten = (rules: readonly FollowRule[]): void => {
-    for (const r of rules) {
-      flat.push(r);
-      flatten(r.next);
-    }
-  };
-  flatten(decl.follow);
-
+  const flat = flatten(decl.follow);
   const nodes: NodeRecord[] = [];
   for (const id of seen) {
     const n = state.nodes.get(id);

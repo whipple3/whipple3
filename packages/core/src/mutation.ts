@@ -1,7 +1,7 @@
 import type { AgentId, EdgeId, NodeId, Version } from "./ids.js";
 import { bump, INITIAL_VERSION } from "./ids.js";
 import { err, ok, type Result } from "./result.js";
-import type { GraphState } from "./state.js";
+import type { GraphState, NodeRecord } from "./state.js";
 
 export type Mutation =
   | {
@@ -45,10 +45,7 @@ export type MutationError =
   | { readonly code: "ALREADY_CLAIMED"; readonly id: NodeId; readonly holder: AgentId }
   | { readonly code: "CLAIM_NOT_HELD"; readonly id: NodeId };
 
-const withNode = (
-  s: GraphState,
-  n: GraphState["nodes"] extends ReadonlyMap<NodeId, infer R> ? R : never,
-): GraphState => ({
+const withNode = (s: GraphState, n: NodeRecord): GraphState => ({
   ...s,
   nodes: new Map(s.nodes).set(n.id, n),
 });
