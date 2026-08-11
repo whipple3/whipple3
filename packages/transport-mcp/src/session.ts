@@ -73,7 +73,7 @@ export const createSession = (deps: SessionDeps) => {
     return err(e);
   };
 
-  const commit = async (
+  const doCommit = async (
     agent: AgentId,
     m: Mutation,
   ): Promise<Result<{ tx: TxId; version: Version | null }, SessionError>> => {
@@ -83,17 +83,37 @@ export const createSession = (deps: SessionDeps) => {
     }
     const applied = apply(state, m);
     if (!applied.ok) return applied;
+    const tx = deps.newTxId();
+    // The log is the truth: state publishes only AFTER the event is durable. A failed
+    // append is a process-edge exception, and the write simply never happened — the
+    // materialized view must not remember what the log cannot replay.
+    await deps.log.append(meta(agent, tx), { type: "graph.mutation", mutation: m });
     state = applied.value;
-    // Captured BEFORE the append await: a concurrent commit may interleave there, and
-    // the caller must be echoed the version ITS write produced. (found by W1-A)
+    // Read from the candidate, not shared state: the echo is the version ITS write
+    // produced, whatever commits queued meanwhile. (found by W1-A)
     const touched =
       m.kind === "ADD_NODE" || m.kind === "UPDATE_NODE"
-        ? (state.nodes.get(m.id)?.version ?? null)
+        ? (applied.value.nodes.get(m.id)?.version ?? null)
         : null;
-    const tx = deps.newTxId();
-    await deps.log.append(meta(agent, tx), { type: "graph.mutation", mutation: m });
     return ok({ tx, version: touched });
   };
+
+  /**
+   * Commits serialize on one queue, so gate→apply→append is atomic against other
+   * commits: nobody applies onto a state whose append may still fail, and state can
+   * never lead the log. A failed commit rejects its caller but never blocks the queue.
+   */
+  let queued: Promise<unknown> = Promise.resolve();
+  const enqueue = <T>(work: () => Promise<T>): Promise<T> => {
+    const run = queued.then(work);
+    queued = run.catch(() => undefined);
+    return run;
+  };
+  const commit = (
+    agent: AgentId,
+    m: Mutation,
+  ): Promise<Result<{ tx: TxId; version: Version | null }, SessionError>> =>
+    enqueue(() => doCommit(agent, m));
 
   /** Observational taxonomy events (claim.acquired/released) — never replay truth. */
   const note = async (agent: AgentId, event: Whipple3Event): Promise<void> => {
@@ -129,10 +149,14 @@ export const createSession = (deps: SessionDeps) => {
   const purge = async (): Promise<Result<{ txId: TxId }, PurgeError>> => {
     const gate = checkPurge(lifetime);
     if (!gate.ok) return gate;
-    state = emptyState();
-    const tx = deps.newTxId();
-    await deps.log.append(meta(null, tx), { type: "session.purged" });
-    return ok({ txId: tx });
+    // Through the commit queue for the same reason commits are: the discard must not
+    // interleave with an in-flight append, and it publishes only once it is logged.
+    return enqueue(async () => {
+      const tx = deps.newTxId();
+      await deps.log.append(meta(null, tx), { type: "session.purged" });
+      state = emptyState();
+      return ok({ txId: tx });
+    });
   };
 
   return { connect, snapshot: (): GraphState => state, distill, purge };

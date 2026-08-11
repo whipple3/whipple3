@@ -384,7 +384,27 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     expect((await log.read()).at(-1)?.event.type).toBe("acl.denied");
   });
 
-  it("post echoes the version its OWN write produced, even when another commit interleaves mid-append", async () => {
+  it("a failed append leaves state untouched — the log is the truth, not the view", async () => {
+    const inner = createMemoryLog();
+    const log = {
+      ...inner,
+      append: () => Promise.reject(new Error("disk full")),
+    };
+    const session = createSession({
+      log,
+      acl: null,
+      sessionId: sessionId("s1"),
+      principal: null,
+      now: () => 0,
+      newTxId: () => txId("t"),
+    });
+    // The log is a process edge: its failure is an exception, not a Result. What must
+    // NOT happen is a state that remembers a write the log never recorded.
+    await expect(session.connect(agentId("a")).post(fileNode("a.ts"))).rejects.toThrow(/disk full/);
+    expect(session.snapshot().nodes.size).toBe(0);
+  });
+
+  it("post echoes the version its OWN write produced, even when another commit queues mid-append", async () => {
     // Found by W1-A: the echo used to re-read shared state after the append await.
     const now = 0;
     let n = 0;
@@ -419,15 +439,15 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     await a.post(fileNode("a.ts")); // append #1, passes through — node at v1
     const parked = a.post({
       mutation: { kind: "UPDATE_NODE", id: "f1", expectedVersion: 1, props: { x: 1 } },
-    }); // applies v2, parks in append #2
-    const interleaved = await b.post({
+    }); // produces v2, parks inside its append
+    const queued = b.post({
       mutation: { kind: "UPDATE_NODE", id: "f1", expectedVersion: 2, props: { y: 2 } },
-    }); // applies v3 while A is parked
+    }); // issued while A is parked — must observe A's v2, produce v3
     release();
-    const echoed = await parked;
+    const [echoed, followed] = await Promise.all([parked, queued]);
 
     expect(echoed.ok && echoed.value.version).toBe(2); // A produced v2, not B's v3
-    expect(interleaved.ok && interleaved.value.version).toBe(3);
+    expect(followed.ok && followed.value.version).toBe(3);
   });
 
   it("status is policy-filtered: unreadable labels leak neither names nor counts", async () => {
