@@ -1,32 +1,8 @@
-import {
-  agentId,
-  emptyState,
-  type Mutation,
-  nodeId,
-  principal,
-  replay,
-  sessionId,
-  txId,
-} from "@whipple3/core";
-import { createMemoryLog } from "@whipple3/log";
+import { emptyState, type Mutation, nodeId, replay } from "@whipple3/core";
+import type { createMemoryLog } from "@whipple3/log";
 import { describe, expect, it } from "vitest";
-import { createSession } from "../src/session.js";
-
-const makeSession = () => {
-  let now = 0;
-  let n = 0;
-  const log = createMemoryLog();
-  const session = createSession({
-    log,
-    acl: null,
-    sessionId: sessionId("s1"),
-    principal: principal("michael"),
-    now: () => now,
-    newTxId: () => txId(`tx${n++}`),
-  });
-  const as = (id: string) => session.connect(agentId(id));
-  return { session, as, log, tick: (ms: number) => (now += ms) };
-};
+import type { createSession } from "../src/session.js";
+import { makeSession } from "./fixtures.js";
 
 /** Deterministic chaos: a seeded PRNG drives microtask yields, so reruns interleave identically. */
 const mulberry32 = (seed: number): (() => number) => {

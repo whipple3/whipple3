@@ -1,26 +1,12 @@
 import { userInfo } from "node:os";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { agentId, sessionId, txId } from "@whipple3/core";
-import { createMemoryLog } from "@whipple3/log";
+import { agentId } from "@whipple3/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { createServer, liveSessionDeps } from "../src/server.js";
-import { createSession, type Session } from "../src/session.js";
+import type { Session } from "../src/session.js";
 import { type ToolName, toolDescriptions } from "../src/tools.js";
-
-const makeSession = () => {
-  let n = 0;
-  const log = createMemoryLog();
-  const session = createSession({
-    log,
-    acl: null,
-    sessionId: sessionId("s1"),
-    principal: null,
-    now: () => 0,
-    newTxId: () => txId(`tx${n++}`),
-  });
-  return { session, log };
-};
+import { makeSession } from "./fixtures.js";
 
 /** One MCP server per connection: the transport, not the payload, carries identity. */
 const connectClient = async (session: Session, agent: string): Promise<Client> => {

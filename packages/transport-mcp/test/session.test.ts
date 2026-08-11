@@ -1,35 +1,8 @@
-import {
-  type AclPolicy,
-  agentId,
-  nodeId,
-  principal,
-  type SliceDecl,
-  sessionId,
-  txId,
-} from "@whipple3/core";
+import { type AclPolicy, agentId, nodeId, sessionId, txId } from "@whipple3/core";
 import { createMemoryLog } from "@whipple3/log";
 import { describe, expect, it } from "vitest";
 import { createSession, type Session } from "../src/session.js";
-
-const makeSession = (
-  acl: AclPolicy | null = null,
-  slices: Readonly<Record<string, SliceDecl>> | undefined = undefined,
-) => {
-  let now = 0;
-  let n = 0;
-  const log = createMemoryLog();
-  const session = createSession({
-    log,
-    acl,
-    slices,
-    sessionId: sessionId("s1"),
-    principal: principal("michael"),
-    now: () => now,
-    newTxId: () => txId(`tx${n++}`),
-  });
-  const as = (id: string) => session.connect(agentId(id));
-  return { session, as, log, tick: (ms: number) => (now += ms) };
-};
+import { makeSession } from "./fixtures.js";
 
 const fileNode = (path: string, id = "f1") => ({
   mutation: {
@@ -354,6 +327,17 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     if (undeclared.ok) {
       expect(undeclared.value.nodes.map((n) => n.id).sort()).toEqual(["f1", "i1", "r1"]);
     }
+  });
+
+  it("read of a nonexistent root under an ACL is an empty slice, not a denial", async () => {
+    // Deliberate asymmetry with the unreadable-root denial below: absence yields the
+    // same empty slice a depth-0 stranger would get, and no acl.denied noise.
+    const { as, log } = makeSession(demoAcl);
+    await seedIssueGraph(as);
+    const r = await as("reporter").read({ root: "ghost" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value).toEqual({ nodes: [], edges: [] });
+    expect((await log.read()).at(-1)?.event.type).not.toBe("acl.denied");
   });
 
   it("an explicit read of an unreadable root is denied with ACL_DENIED_READ and logged", async () => {
