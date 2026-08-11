@@ -77,3 +77,20 @@ export const toolInputs = {
 } as const;
 
 export type ToolName = keyof typeof toolInputs;
+
+/**
+ * The LLM-facing tool contract, beside the schemas for the same reason the schemas
+ * live here: every transport — direct stdio and the cli's socket proxy — must
+ * advertise the SAME text, or agents see different tools depending on how they connect.
+ */
+export const toolDescriptions: Readonly<Record<ToolName, string>> = {
+  blackboard_post: "Submit a typed, versioned mutation (schema + ACL validated).",
+  blackboard_read:
+    "Read a scoped slice around a root node. The engine decides the scope: your " +
+    "declared role slice if one exists, else a default neighborhood.",
+  blackboard_claim: "Claim/lease a node for exclusive work until the ttl expires.",
+  blackboard_release: "Release this connection's own lease on a node before its ttl expires.",
+  blackboard_next: "Pull the next pending work item for a label, skipping claimed nodes.",
+  blackboard_status:
+    "Session summary: node/edge/claim counts by label, filtered to what you may read.",
+};

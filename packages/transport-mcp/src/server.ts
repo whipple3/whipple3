@@ -1,10 +1,10 @@
 import { userInfo } from "node:os";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ok, type Principal, principal, type Result, sessionId, txId } from "@whipple3/core";
+import { err, ok, type Principal, principal, type Result, sessionId, txId } from "@whipple3/core";
 import { ulid } from "ulid";
 import type { AgentConnection, SessionDeps } from "./session.js";
-import { toolInputs } from "./tools.js";
+import { toolDescriptions, toolInputs } from "./tools.js";
 
 /** Every tool answers with a serialized Result — structured data, never prose. (SPEC §6) */
 const asToolResult = (r: Result<unknown, unknown>) => ({
@@ -13,68 +13,68 @@ const asToolResult = (r: Result<unknown, unknown>) => ({
 });
 
 /**
+ * A dead backend is a structured error to the host, never a stack trace over stdio.
+ * Only the socket-proxied connection throws in practice (its board can die mid-call);
+ * an in-process connection speaks Results throughout.
+ */
+const guarded = async (call: () => Promise<Result<unknown, unknown>>) => {
+  try {
+    return asToolResult(await call());
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return asToolResult(err({ code: "BOARD_UNREACHABLE", message }));
+  }
+};
+
+/**
  * One server per connection, already bound to its agent (`session.connect`): the MCP
  * transport is the identity boundary, so no tool payload carries an agentId. (SPEC §4.6)
  * The SDK validates against the same schemas it advertises; session re-parses the raw
  * object because its own boundary is `unknown` (tests and future transports call it directly).
+ * `connection` may equally be a RemoteAgentConnection — the six-op surface is identical
+ * (status went async in W2-B precisely so a socket proxy could honor it), which keeps
+ * this the ONE registration site for tools, schemas and descriptions on every transport.
  */
-export const createServer = (session: AgentConnection): McpServer => {
+export const createServer = (connection: AgentConnection): McpServer => {
   const server = new McpServer({ name: "whipple3", version: "0.1.0" });
 
   server.registerTool(
     "blackboard_post",
-    {
-      description: "Submit a typed, versioned mutation (schema + ACL validated).",
-      inputSchema: toolInputs.blackboard_post,
-    },
-    async (args) => asToolResult(await session.post(args)),
+    { description: toolDescriptions.blackboard_post, inputSchema: toolInputs.blackboard_post },
+    (args) => guarded(() => connection.post(args)),
   );
 
   server.registerTool(
     "blackboard_read",
-    {
-      description:
-        "Read a scoped slice around a root node. The engine decides the scope: your " +
-        "declared role slice if one exists, else a default neighborhood.",
-      inputSchema: toolInputs.blackboard_read,
-    },
-    async (args) => asToolResult(await session.read(args)),
+    { description: toolDescriptions.blackboard_read, inputSchema: toolInputs.blackboard_read },
+    (args) => guarded(() => connection.read(args)),
   );
 
   server.registerTool(
     "blackboard_claim",
-    {
-      description: "Claim/lease a node for exclusive work until the ttl expires.",
-      inputSchema: toolInputs.blackboard_claim,
-    },
-    async (args) => asToolResult(await session.claim(args)),
+    { description: toolDescriptions.blackboard_claim, inputSchema: toolInputs.blackboard_claim },
+    (args) => guarded(() => connection.claim(args)),
   );
 
   server.registerTool(
     "blackboard_release",
     {
-      description: "Release this connection's own lease on a node before its ttl expires.",
+      description: toolDescriptions.blackboard_release,
       inputSchema: toolInputs.blackboard_release,
     },
-    async (args) => asToolResult(await session.release(args)),
+    (args) => guarded(() => connection.release(args)),
   );
 
   server.registerTool(
     "blackboard_next",
-    {
-      description: "Pull the next pending work item for a label, skipping claimed nodes.",
-      inputSchema: toolInputs.blackboard_next,
-    },
-    async (args) => asToolResult(await session.next(args)),
+    { description: toolDescriptions.blackboard_next, inputSchema: toolInputs.blackboard_next },
+    (args) => guarded(() => connection.next(args)),
   );
 
   server.registerTool(
     "blackboard_status",
-    {
-      description: "Session summary: node/edge/claim counts by label.",
-      inputSchema: toolInputs.blackboard_status,
-    },
-    async () => asToolResult(ok(await session.status())),
+    { description: toolDescriptions.blackboard_status, inputSchema: toolInputs.blackboard_status },
+    () => guarded(async () => ok(await connection.status())),
   );
 
   return server;
@@ -102,6 +102,6 @@ export const liveSessionDeps = (): Pick<
   newTxId: () => txId(ulid()),
 });
 
-export const serveStdio = async (session: AgentConnection): Promise<void> => {
-  await createServer(session).connect(new StdioServerTransport());
+export const serveStdio = async (connection: AgentConnection): Promise<void> => {
+  await createServer(connection).connect(new StdioServerTransport());
 };

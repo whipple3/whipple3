@@ -6,6 +6,7 @@ import { createMemoryLog } from "@whipple3/log";
 import { afterEach, describe, expect, it } from "vitest";
 import { createServer, liveSessionDeps } from "../src/server.js";
 import { createSession, type Session } from "../src/session.js";
+import { type ToolName, toolDescriptions } from "../src/tools.js";
 
 const makeSession = () => {
   let n = 0;
@@ -50,6 +51,17 @@ describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", 
     ]);
     for (const tool of tools) {
       expect(Object.keys(tool.inputSchema.properties ?? {})).not.toContain("agentId");
+    }
+  });
+
+  it("advertises the shared descriptions — the LLM-facing contract has one source", async () => {
+    // Descriptions live in tools.ts beside the schemas so every transport (direct
+    // stdio AND the cli's socket proxy) advertises the same text — the read tool
+    // once drifted between the two registration sites.
+    const client = await connectClient(makeSession().session, "scanner");
+    const { tools } = await client.listTools();
+    for (const tool of tools) {
+      expect(tool.description).toBe(toolDescriptions[tool.name as ToolName]);
     }
   });
 
