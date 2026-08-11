@@ -195,10 +195,27 @@ export const createConnection = (ctx: ConnectionCtx, agent: AgentId) => ({
   async status(): Promise<SessionStatus> {
     const at = ctx.now();
     const state = ctx.state();
+    // Same rule as read: an unreadable label leaks neither its name nor its counts,
+    // and an edge counts only when its label AND both endpoints are readable. (ADR-008)
+    const readable = ctx.acl === null ? null : new Set(readableLabels(ctx.acl, agent));
+    const canSee = (label: string): boolean => readable === null || readable.has(label);
+    const nodeVisible = (id: string): boolean => {
+      const n = state.nodes.get(nodeId(id));
+      return n !== undefined && canSee(n.label);
+    };
     const byLabel: Record<string, number> = {};
-    for (const n of state.nodes.values()) byLabel[n.label] = (byLabel[n.label] ?? 0) + 1;
+    let nodes = 0;
+    for (const n of state.nodes.values()) {
+      if (!canSee(n.label)) continue;
+      nodes += 1;
+      byLabel[n.label] = (byLabel[n.label] ?? 0) + 1;
+    }
+    let edges = 0;
+    for (const e of state.edges.values())
+      if (canSee(e.label) && nodeVisible(e.from) && nodeVisible(e.to)) edges += 1;
     let activeClaims = 0;
-    for (const c of state.claims.values()) if (c.expiresAt > at) activeClaims += 1;
-    return { nodes: state.nodes.size, edges: state.edges.size, activeClaims, byLabel };
+    for (const c of state.claims.values())
+      if (c.expiresAt > at && nodeVisible(c.nodeId)) activeClaims += 1;
+    return { nodes, edges, activeClaims, byLabel };
   },
 });

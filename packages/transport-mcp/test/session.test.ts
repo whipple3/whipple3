@@ -413,6 +413,38 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     expect(interleaved.ok && interleaved.value.version).toBe(3);
   });
 
+  it("status is policy-filtered: unreadable labels leak neither names nor counts", async () => {
+    const { as } = makeSession(demoAcl);
+    await seedIssueGraph(as);
+    await as("auditor").claim({ id: "i1", ttlMs: 1000 });
+
+    // scanner reads CodeFile only: the SecurityIssue node, the HAS_ISSUE edge and the
+    // claim on i1 must not appear — not even as counts. (ADR-008, same rule as read)
+    expect(await as("scanner").status()).toEqual({
+      nodes: 1,
+      edges: 0,
+      activeClaims: 0,
+      byLabel: { CodeFile: 1 },
+    });
+
+    // reporter may read the edge label but not its CodeFile endpoint — the edge stays
+    // hidden, exactly as it would in a slice; the claim on i1 is visible.
+    expect(await as("reporter").status()).toEqual({
+      nodes: 1,
+      edges: 0,
+      activeClaims: 1,
+      byLabel: { SecurityIssue: 1 },
+    });
+
+    // auditor reads everything — the unfiltered totals.
+    expect(await as("auditor").status()).toEqual({
+      nodes: 2,
+      edges: 1,
+      activeClaims: 1,
+      byLabel: { CodeFile: 1, SecurityIssue: 1 },
+    });
+  });
+
   it("status is async — the one shape every transport, including a socket proxy, can honor", async () => {
     const { as, tick } = makeSession();
     const scanner = as("scanner");
