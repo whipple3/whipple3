@@ -1,4 +1,4 @@
-import type { AgentId, Principal, SessionId, TxId } from "./ids.js";
+import type { AgentId, NodeId, Principal, SessionId, TxId } from "./ids.js";
 import type { Mutation } from "./mutation.js";
 
 /**
@@ -25,17 +25,17 @@ export type Whipple3Event =
   | { readonly type: "graph.mutation"; readonly mutation: Mutation }
   | {
       readonly type: "acl.denied";
-      readonly agentId: string;
+      readonly agentId: AgentId;
       readonly label: string;
       readonly reason: "read" | "write";
     }
-  | { readonly type: "claim.acquired"; readonly nodeId: string; readonly agentId: string }
-  | { readonly type: "claim.released"; readonly nodeId: string; readonly agentId: string }
-  | { readonly type: "claim.expired"; readonly nodeId: string; readonly agentId: string }
-  | { readonly type: "agent.triggered"; readonly agentId: string; readonly reason: string }
-  | { readonly type: "agent.started"; readonly agentId: string }
-  | { readonly type: "agent.completed"; readonly agentId: string }
-  | { readonly type: "agent.failed"; readonly agentId: string; readonly message: string }
+  | { readonly type: "claim.acquired"; readonly nodeId: NodeId; readonly agentId: AgentId }
+  | { readonly type: "claim.released"; readonly nodeId: NodeId; readonly agentId: AgentId }
+  | { readonly type: "claim.expired"; readonly nodeId: NodeId; readonly agentId: AgentId }
+  | { readonly type: "agent.triggered"; readonly agentId: AgentId; readonly reason: string }
+  | { readonly type: "agent.started"; readonly agentId: AgentId }
+  | { readonly type: "agent.completed"; readonly agentId: AgentId }
+  | { readonly type: "agent.failed"; readonly agentId: AgentId; readonly message: string }
   | {
       readonly type: "llm.call";
       readonly model: string;

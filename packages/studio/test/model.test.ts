@@ -21,10 +21,10 @@ const updateNode = (
   });
 
 const acquired = (seq: number, id: string, agent: string): LogRecord =>
-  recordOf(seq, { type: "claim.acquired", nodeId: id, agentId: agent });
+  recordOf(seq, { type: "claim.acquired", nodeId: nodeId(id), agentId: agentId(agent) });
 
 const released = (seq: number, id: string, agent: string): LogRecord =>
-  recordOf(seq, { type: "claim.released", nodeId: id, agentId: agent });
+  recordOf(seq, { type: "claim.released", nodeId: nodeId(id), agentId: agentId(agent) });
 
 const fold = (records: readonly LogRecord[]) => records.reduce(foldRecord, emptyModel());
 
@@ -73,7 +73,7 @@ describe("foldRecord", () => {
   it("tints on claim.acquired: holder + since from the record meta", () => {
     const model = fold([addNode(0, "f1"), acquired(1, "f1", "auditor-1")]);
 
-    expect(model.held.get("f1")).toEqual({ agentId: "auditor-1", since: 1 });
+    expect(model.held.get("f1")).toEqual({ agentId: agentId("auditor-1"), since: 1 });
   });
 
   it("clears the tint on claim.released", () => {
@@ -94,7 +94,7 @@ describe("foldRecord", () => {
       acquired(3, "f1", "auditor-2"),
     ]);
 
-    expect(model.held.get("f1")).toEqual({ agentId: "auditor-2", since: 3 });
+    expect(model.held.get("f1")).toEqual({ agentId: agentId("auditor-2"), since: 3 });
   });
 
   it("CLAIM_NODE mutations do not tint — claim.* events are the tint source", () => {

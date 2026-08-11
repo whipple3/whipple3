@@ -23,7 +23,7 @@ const updateNode = (seq: number, id: string, expected: number): LogRecord =>
 const RECORDS: readonly LogRecord[] = [
   addNode(0, "f1"),
   addNode(1, "f2"),
-  recordOf(2, { type: "claim.acquired", nodeId: "f1", agentId: "auditor-1" }),
+  recordOf(2, { type: "claim.acquired", nodeId: nodeId("f1"), agentId: agentId("auditor-1") }),
   updateNode(3, "f1", 1),
   recordOf(4, {
     type: "graph.mutation",
@@ -33,9 +33,9 @@ const RECORDS: readonly LogRecord[] = [
       agentId: agentId("auditor-1"),
     },
   }),
-  recordOf(5, { type: "claim.released", nodeId: "f1", agentId: "auditor-1" }),
-  recordOf(6, { type: "acl.denied", agentId: "fixer", label: "file", reason: "write" }),
-  recordOf(7, { type: "acl.denied", agentId: "fixer", label: "secret", reason: "read" }),
+  recordOf(5, { type: "claim.released", nodeId: nodeId("f1"), agentId: agentId("auditor-1") }),
+  recordOf(6, { type: "acl.denied", agentId: agentId("fixer"), label: "file", reason: "write" }),
+  recordOf(7, { type: "acl.denied", agentId: agentId("fixer"), label: "secret", reason: "read" }),
 ];
 
 const historyOf = (id: string, upTo = RECORDS.length - 1) => nodeHistory(RECORDS, id, upTo);
@@ -46,9 +46,9 @@ describe("nodeHistory", () => {
 
     const added = entries.find((e) => e.kind === "added");
     const updated = entries.find((e) => e.kind === "updated");
-    expect(added).toMatchObject({ seq: 0, ts: 0, agentId: "writer" });
+    expect(added).toMatchObject({ seq: 0, ts: 0, agentId: agentId("writer") });
     expect(added?.detail).toContain("path=src/f1.ts");
-    expect(updated).toMatchObject({ seq: 3, agentId: "writer" });
+    expect(updated).toMatchObject({ seq: 3, agentId: agentId("writer") });
     expect(updated?.detail).toContain("status=audited");
   });
 
@@ -59,7 +59,7 @@ describe("nodeHistory", () => {
     expect(entries.filter((e) => e.kind === "released")).toHaveLength(1);
     expect(entries.find((e) => e.kind === "claimed")).toMatchObject({
       seq: 2,
-      agentId: "auditor-1",
+      agentId: agentId("auditor-1"),
     });
   });
 
@@ -75,7 +75,7 @@ describe("nodeHistory", () => {
     const denied = historyOf("f1").filter((e) => e.kind === "denied");
 
     expect(denied).toHaveLength(1);
-    expect(denied[0]).toMatchObject({ seq: 6, agentId: "fixer" });
+    expect(denied[0]).toMatchObject({ seq: 6, agentId: agentId("fixer") });
     expect(denied[0]?.detail).toContain("file");
   });
 

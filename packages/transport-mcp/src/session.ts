@@ -66,7 +66,7 @@ export const createSession = (deps: SessionDeps) => {
   const deny = async (agent: AgentId, e: AclError): Promise<Result<never, AclError>> => {
     await deps.log.append(meta(agent, deps.newTxId()), {
       type: "acl.denied",
-      agentId: agent as string,
+      agentId: agent,
       label: e.label,
       reason: e.code === "ACL_DENIED_READ" ? "read" : "write",
     });

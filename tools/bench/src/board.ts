@@ -45,7 +45,7 @@ const reworked = (records: readonly LogRecord[]): number => {
     r.event.type === "graph.mutation" &&
     r.event.mutation.kind === "UPDATE_NODE" &&
     r.meta.agentId !== null
-      ? [[r.event.mutation.id as string, r.meta.agentId as string]]
+      ? [[r.event.mutation.id, r.meta.agentId]]
       : [],
   );
   let count = 0;

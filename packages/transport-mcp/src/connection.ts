@@ -129,11 +129,7 @@ export const createConnection = (ctx: ConnectionCtx, agent: AgentId) => ({
     if (!committed.ok) return committed;
     // Observational taxonomy event; replay truth stays graph.mutation. claim.expired
     // stays unemitted until the push scheduler owns a clock. (SPEC §7)
-    await ctx.note(agent, {
-      type: "claim.acquired",
-      nodeId: id as string,
-      agentId: agent as string,
-    });
+    await ctx.note(agent, { type: "claim.acquired", nodeId: id, agentId: agent });
     return ok({ txId: committed.value.tx, expiresAt: at + parsed.value.ttlMs });
   },
 
@@ -143,11 +139,7 @@ export const createConnection = (ctx: ConnectionCtx, agent: AgentId) => ({
     const id = nodeId(parsed.value.id);
     const committed = await ctx.commit(agent, { kind: "RELEASE_NODE", id, agentId: agent });
     if (!committed.ok) return committed;
-    await ctx.note(agent, {
-      type: "claim.released",
-      nodeId: id as string,
-      agentId: agent as string,
-    });
+    await ctx.note(agent, { type: "claim.released", nodeId: id, agentId: agent });
     return ok({ txId: committed.value.tx });
   },
 
@@ -173,7 +165,7 @@ export const createConnection = (ctx: ConnectionCtx, agent: AgentId) => ({
     if (!parsed.ok) return parsed;
     const state = ctx.state();
     const root = nodeId(parsed.value.root);
-    const decl = ctx.slices?.[agent as string];
+    const decl = ctx.slices?.[agent];
     if (ctx.acl === null) {
       // No ACL: a declaration is still a bound — its own labels are the readable set.
       if (decl !== undefined) return ok(sliceFor(state, root, decl, declLabels(decl)));

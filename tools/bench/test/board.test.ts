@@ -40,7 +40,7 @@ const claim = (agent: string, node: string): readonly LogRecord[] => [
     now: 1000 + seq,
     ttlMs: 30_000,
   }),
-  rec(agent, { type: "claim.acquired", nodeId: node, agentId: agent }),
+  rec(agent, { type: "claim.acquired", nodeId: nodeId(node), agentId: agentId(agent) }),
 ];
 
 /** A replay-valid audit trail: renewal, a contested re-claim, and a reworked node. */
@@ -65,7 +65,12 @@ const auditTrail = (): readonly LogRecord[] => {
       expectedVersion: version(2),
       props: { status: "audited-again" },
     }),
-    rec("scanner", { type: "acl.denied", agentId: "scanner", label: "Exfil", reason: "write" }),
+    rec("scanner", {
+      type: "acl.denied",
+      agentId: agentId("scanner"),
+      label: "Exfil",
+      reason: "write",
+    }),
   ];
 };
 

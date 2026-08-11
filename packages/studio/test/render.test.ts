@@ -1,5 +1,5 @@
 import type { LogRecord } from "@whipple3/core";
-import { edgeId, nodeId } from "@whipple3/core";
+import { agentId, edgeId, nodeId } from "@whipple3/core";
 import Graph from "graphology";
 import { describe, expect, it } from "vitest";
 import { colorForAgent, colorForLabel } from "../src/colors.js";
@@ -26,8 +26,8 @@ const RECORDS: readonly LogRecord[] = [
       to: nodeId("f1"),
     },
   }),
-  recordOf(3, { type: "claim.acquired", nodeId: "f1", agentId: "auditor-1" }),
-  recordOf(4, { type: "claim.released", nodeId: "f1", agentId: "auditor-1" }),
+  recordOf(3, { type: "claim.acquired", nodeId: nodeId("f1"), agentId: agentId("auditor-1") }),
+  recordOf(4, { type: "claim.released", nodeId: nodeId("f1"), agentId: agentId("auditor-1") }),
 ];
 
 const modelUpTo = (upTo: number): StudioModel => modelAt(RECORDS, upTo);
