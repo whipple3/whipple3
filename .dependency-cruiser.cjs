@@ -28,7 +28,10 @@ module.exports = {
       severity: "error",
       comment: "@whipple3/core is pure: no Node built-ins (I/O lives in the shell).",
       from: { path: "^packages/core/src" },
-      to: { path: "^node:" },
+      // dependencyTypes, not a "^node:" path match: the resolver strips the node:
+      // protocol before rules run, so a path rule can never fire. "core" is
+      // dependency-cruiser's name for Node built-ins, prefixed or bare.
+      to: { dependencyTypes: ["core"] },
     },
   ],
   options: { doNotFollow: { path: "node_modules" }, tsConfig: { fileName: "tsconfig.base.json" } },
