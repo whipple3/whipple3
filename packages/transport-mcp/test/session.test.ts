@@ -171,6 +171,23 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     });
   });
 
+  it("a claim outside the write list is ACL_DENIED_WRITE and logged — read access cannot lock", async () => {
+    const { session, as, log } = makeSession(demoAcl);
+    await seedIssueGraph(as);
+    // reporter READS SecurityIssue but writes nothing: the claim must be denied on the
+    // label resolved from state, and the denial must land in the log like any other.
+    const denied = await as("reporter").claim({ id: "i1", ttlMs: 1000 });
+    expect(denied.ok).toBe(false);
+    if (!denied.ok) expect(denied.error.code).toBe("ACL_DENIED_WRITE");
+    expect(session.snapshot().claims.size).toBe(0);
+    expect((await log.read()).at(-1)?.event).toEqual({
+      type: "acl.denied",
+      agentId: "reporter",
+      label: "SecurityIssue",
+      reason: "write",
+    });
+  });
+
   it("a stale expectedVersion surfaces VERSION_CONFLICT with the current version", async () => {
     const { as } = makeSession();
     const auditor = as("auditor");
