@@ -23,7 +23,8 @@
 - שערי CI: ‏tsc קשיח, Biome, ‏dependency-cruiser (טוהר הליבה וכיוון imports),
   ‏Vitest + אינווריאנטים ב־fast-check.
 
-**"גמור" אומר:** `pnpm typecheck && lint && depcruise && test && build` — הכול ירוק.
+**"גמור" אומר:** `pnpm typecheck && lint && depcruise && build && test` — הכול ירוק.
+(בילד לפני טסט — סוויטות ה־e2e של ה־CLI מריצות את `dist/main.js` הבנוי.)
 
 ---
 

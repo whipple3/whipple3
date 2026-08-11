@@ -24,7 +24,8 @@ The skeleton, green end to end.
 - CI gates: strict tsc, Biome, dependency-cruiser (core purity + import direction),
   Vitest + fast-check invariants.
 
-**Done means:** `pnpm typecheck && lint && depcruise && test && build` all green.
+**Done means:** `pnpm typecheck && lint && depcruise && build && test` all green.
+(Build before test — the CLI e2e suites run the built `dist/main.js`.)
 
 ---
 
