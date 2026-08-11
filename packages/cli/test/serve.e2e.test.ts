@@ -17,8 +17,9 @@ const spawnCli = (cwd: string, ...argv: string[]) => {
   const child = spawn("node", [bin, ...argv], { cwd });
   children.push(child);
   let stdout = "";
-  child.stdout.on("data", (chunk: Buffer) => {
-    stdout += chunk.toString("utf8");
+  child.stdout.setEncoding("utf8"); // one decode mode for every listener, rpcClient included
+  child.stdout.on("data", (chunk: string) => {
+    stdout += chunk;
   });
   return { child, stdout: () => stdout };
 };

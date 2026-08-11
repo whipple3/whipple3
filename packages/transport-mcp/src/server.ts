@@ -13,16 +13,17 @@ const asToolResult = (r: Result<unknown, unknown>) => ({
 });
 
 /**
- * A dead backend is a structured error to the host, never a stack trace over stdio.
- * Only the socket-proxied connection throws in practice (its board can die mid-call);
- * an in-process connection speaks Results throughout.
+ * A thrown failure is a structured error to the host, never a stack trace over stdio.
+ * Two real sources: a socket-proxied connection whose board died mid-call, and the
+ * direct path's process-edge exceptions (a failed log append — session.ts commits
+ * throw there by contract). One honest code for both; the message names the cause.
  */
 const guarded = async (call: () => Promise<Result<unknown, unknown>>) => {
   try {
     return asToolResult(await call());
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    return asToolResult(err({ code: "BOARD_UNREACHABLE", message }));
+    return asToolResult(err({ code: "BOARD_FAILURE", message }));
   }
 };
 
@@ -35,8 +36,10 @@ const guarded = async (call: () => Promise<Result<unknown, unknown>>) => {
  * (status went async in W2-B precisely so a socket proxy could honor it), which keeps
  * this the ONE registration site for tools, schemas and descriptions on every transport.
  */
-export const createServer = (connection: AgentConnection): McpServer => {
-  const server = new McpServer({ name: "whipple3", version: "0.1.0" });
+export const createServer = (connection: AgentConnection, version = "0.1.0"): McpServer => {
+  // `version` reaches the MCP handshake's serverInfo; the cli passes its own VERSION
+  // so a release bump cannot silently diverge the two surfaces.
+  const server = new McpServer({ name: "whipple3", version });
 
   server.registerTool(
     "blackboard_post",
@@ -102,6 +105,6 @@ export const liveSessionDeps = (): Pick<
   newTxId: () => txId(ulid()),
 });
 
-export const serveStdio = async (connection: AgentConnection): Promise<void> => {
-  await createServer(connection).connect(new StdioServerTransport());
+export const serveStdio = async (connection: AgentConnection, version?: string): Promise<void> => {
+  await createServer(connection, version).connect(new StdioServerTransport());
 };

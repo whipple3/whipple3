@@ -5,6 +5,7 @@ import { createJsonlLog } from "@whipple3/log";
 import { createServer, createSession, liveSessionDeps, serveStdio } from "@whipple3/transport-mcp";
 import { connectBoard } from "@whipple3/transport-uds";
 import { defineCommand } from "citty";
+import { VERSION } from "./version.js";
 
 export const mcp = defineCommand({
   meta: { name: "mcp", description: "Start the whipple3 blackboard MCP server on stdio." },
@@ -31,7 +32,7 @@ export const mcp = defineCommand({
       // A dead board surfaces as a structured BOARD_UNREACHABLE result, never prose.
       const board = await connectBoard({ socketPath: args.board, agentId: agentId(args.agent) });
       // stdout is the MCP wire from here on — nothing else may print to it.
-      await createServer(board).connect(new StdioServerTransport());
+      await createServer(board, VERSION).connect(new StdioServerTransport());
       return;
     }
     mkdirSync(".whipple3", { recursive: true });
@@ -43,6 +44,6 @@ export const mcp = defineCommand({
       ...liveSessionDeps(),
     });
     // stdout is the MCP wire from here on — nothing else may print to it.
-    await serveStdio(session.connect(agentId(args.agent)));
+    await serveStdio(session.connect(agentId(args.agent)), VERSION);
   },
 });

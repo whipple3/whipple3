@@ -41,6 +41,35 @@ const RECORDS: readonly LogRecord[] = [
 const historyOf = (id: string, upTo = RECORDS.length - 1) => nodeHistory(RECORDS, id, upTo);
 
 describe("nodeHistory", () => {
+  it("trims at the last purge — a re-added id does not inherit its pre-purge story", () => {
+    // f1 lived as "file" and was claimed; the board purged; f1 returned as "task".
+    // History (and the label acl.denied entries scope to) must start at the purge,
+    // exactly like the fold's graph does.
+    const records: readonly LogRecord[] = [
+      addNode(0, "f1"),
+      recordOf(1, { type: "claim.acquired", nodeId: nodeId("f1"), agentId: agentId("a1") }),
+      recordOf(2, {
+        type: "acl.denied",
+        agentId: agentId("fixer"),
+        label: "file",
+        reason: "write",
+      }),
+      recordOf(3, { type: "session.purged" }),
+      addNode(4, "f1", "task"),
+      recordOf(5, {
+        type: "acl.denied",
+        agentId: agentId("fixer"),
+        label: "task",
+        reason: "write",
+      }),
+    ];
+    const entries = nodeHistory(records, "f1", records.length - 1);
+    expect(entries.map((e) => [e.seq, e.kind])).toEqual([
+      [4, "added"],
+      [5, "denied"],
+    ]);
+  });
+
   it("collects added and updated entries with the acting agent and props", () => {
     const entries = historyOf("f1");
 

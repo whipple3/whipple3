@@ -100,13 +100,6 @@ const pairMatches = (a: string, b: string, rule: FollowRule): boolean =>
   (a === rule.from && b === rule.to) || (a === rule.to && b === rule.from);
 
 /**
- * Role-declared slicing — the declarative replacement for raw BFS depth. (SPEC §4.7,
- * ROADMAP Stage 2.) Same leak rule as readableNeighborhood: what the declaration doesn't
- * include is never emitted, and an excluded (undeclared OR unreadable) node blocks
- * traversal through itself. The declaration can only NARROW the read ACL — every check
- * intersects with `readable` — so sliceFor(...) ⊆ readableNeighborhood(...), by property test.
- */
-/**
  * Up to rule.hops consecutive hops along rule.edge from `starts`; pure — returns every
  * node the rule reached (readable ones only), and nothing else changes.
  */
@@ -149,6 +142,13 @@ const expand = (
 const flatten = (rules: readonly FollowRule[]): readonly FollowRule[] =>
   rules.flatMap((r) => [r, ...flatten(r.next)]);
 
+/**
+ * Role-declared slicing — the declarative replacement for raw BFS depth. (SPEC §4.7,
+ * ROADMAP Stage 2.) Same leak rule as readableNeighborhood: what the declaration doesn't
+ * include is never emitted, and an excluded (undeclared OR unreadable) node blocks
+ * traversal through itself. The declaration can only NARROW the read ACL — every check
+ * intersects with `readable` — so sliceFor(...) ⊆ readableNeighborhood(...), by property test.
+ */
 export const sliceFor = (
   state: GraphState,
   root: NodeId,

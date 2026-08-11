@@ -5,7 +5,7 @@ import { agentId } from "@whipple3/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { createServer, liveSessionDeps } from "../src/server.js";
 import type { Session } from "../src/session.js";
-import { type ToolName, toolDescriptions } from "../src/tools.js";
+import { toolDescriptions } from "../src/tools.js";
 import { makeSession } from "./fixtures.js";
 
 /** One MCP server per connection: the transport, not the payload, carries identity. */
@@ -46,8 +46,8 @@ describe("server — five tools over a real MCP round-trip (CLAUDE.md W1 §2)", 
     // once drifted between the two registration sites.
     const client = await connectClient(makeSession().session, "scanner");
     const { tools } = await client.listTools();
-    for (const tool of tools) {
-      expect(tool.description).toBe(toolDescriptions[tool.name as ToolName]);
+    for (const [name, description] of Object.entries(toolDescriptions)) {
+      expect(tools.find((t) => t.name === name)?.description).toBe(description);
     }
   });
 

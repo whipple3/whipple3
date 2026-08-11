@@ -66,9 +66,20 @@ export const nodeHistory = (
   upTo: number,
 ): readonly HistoryEntry[] => {
   const prefix = records.slice(0, upTo + 1);
-  const label = labelOf(prefix, id);
+  // Start at the last purge, exactly like the fold's graph: the board discarded that
+  // world, so a re-added id must not inherit its pre-purge story or label.
+  // (Reverse loop, not findLastIndex — the tsconfig lib stops at es2022.)
+  let purgedAt = -1;
+  for (let i = prefix.length - 1; i >= 0; i--) {
+    if (prefix[i]?.event.type === "session.purged") {
+      purgedAt = i;
+      break;
+    }
+  }
+  const epoch = purgedAt >= 0 ? prefix.slice(purgedAt + 1) : prefix;
+  const label = labelOf(epoch, id);
   const entries: HistoryEntry[] = [];
-  for (const record of prefix) {
+  for (const record of epoch) {
     const entry = entryFor(record, id, label);
     if (entry !== null) entries.push(entry);
   }

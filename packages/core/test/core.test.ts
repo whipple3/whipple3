@@ -68,7 +68,9 @@ describe("core invariants (SPEC §9.4)", () => {
       fc.property(fc.array(arbMutation, { maxLength: 30 }), (ms) => {
         let state = emptyState();
         for (const m of ms) {
-          const before = entriesOf(state);
+          // structuredClone, not a shallow entries copy: the before-image must not
+          // share record/props references, or in-place mutation would pass unseen.
+          const before = structuredClone(entriesOf(state));
           const r = apply(state, m);
           expect(entriesOf(state)).toEqual(before);
           if (r.ok) state = r.value;

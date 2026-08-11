@@ -1,5 +1,6 @@
+import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
-import { connect, createServer as createNetServer } from "node:net";
+import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentId, principal, sessionId, txId } from "@whipple3/core";
@@ -209,10 +210,18 @@ describe("board server — socket path lifecycle", () => {
   it("reclaims a stale socket file nobody is listening on", async () => {
     const dir = mkdtempSync(join(tmpdir(), "w3uds-"));
     const socketPath = socketPathIn(dir);
-    // A dead serve's real leftovers: closing a server does NOT unlink its socket file.
-    const dead = createNetServer();
-    await new Promise<void>((r) => dead.listen(socketPath, () => r()));
-    await new Promise<void>((r) => dead.close(() => r()));
+    // A dead serve's real leftovers: only a KILLED process leaves its socket file
+    // behind (an orderly close() unlinks it), so orphan one with SIGKILL.
+    const orphan = spawn(process.execPath, [
+      "-e",
+      'require("node:net").createServer().listen(process.argv[1], () => console.log("up"))',
+      socketPath,
+    ]);
+    await new Promise<void>((r) => orphan.stdout.once("data", () => r()));
+    orphan.kill("SIGKILL");
+    await new Promise<void>((r) => orphan.once("exit", () => r()));
+    // Fixture sanity: the orphaned socket really is on disk, so reclaim really runs.
+    expect(existsSync(socketPath)).toBe(true);
     const { log } = { log: createMemoryLog() };
     const session = createSession({
       log,
