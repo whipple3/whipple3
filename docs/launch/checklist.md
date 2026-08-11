@@ -23,10 +23,13 @@ still reviews the diff/output).
 
 - [x] **[Michael]** LICENSE full legal name — `Copyright (c) 2026 Michael Vexler`
       (set 2026-08-11). The publish gate this imposed is lifted.
-- [ ] **[Michael]** Create the GitHub org (`github.com/whipple3` — re-verified free
-      2026-08-11) and the `whipple3` repo.
-- [ ] **[Michael]** `git remote add origin … && git push` main; enable the Actions
-      matrix (SPEC §15 TODO). First CI run green on GitHub, not just locally.
+- [x] **[Michael]** GitHub org `whipple3` created + public repo `whipple3/whipple3`
+      (2026-08-11).
+- [x] **[Michael]** main pushed; Actions ran on push. First cloud run was RED — it
+      caught a real Linux/macOS divergence (connect(2) to a plain file: ENOTSOCK on
+      macOS, ECONNREFUSED on Linux; the dial error advised deleting a possibly-real
+      file). Fixed in transport-uds (stat before advising rm); second run **green**
+      (2026-08-11). Cloud CI earned its keep on day one.
 - [ ] **[Michael]** Create the npm org / verify the `whipple3` package name and
       `@whipple3` scope are still free (re-verified 2026-08-11: package 404 on the
       registry, org page "Scope not found"; re-verify at publish).
