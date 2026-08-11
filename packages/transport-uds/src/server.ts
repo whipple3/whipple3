@@ -112,8 +112,11 @@ const serveConnection = (session: Session, socket: Socket, liveIdentities: Set<s
       .catch(() => send({ kind: "err", id: frame.id, error: { code: "INTERNAL" } }));
   };
 
-  socket.on("data", (chunk) => {
-    for (const line of push(chunk.toString("utf8"))) {
+  // setEncoding, not per-chunk toString: a multi-byte character split across two
+  // 'data' events must be held by the StringDecoder, or it silently becomes U+FFFD.
+  socket.setEncoding("utf8");
+  socket.on("data", (chunk: string) => {
+    for (const line of push(chunk)) {
       let raw: unknown;
       try {
         raw = JSON.parse(line);
