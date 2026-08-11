@@ -257,6 +257,6 @@ TypeScript strict, **ESM-only, Node ≥ 22** (matches every package's `engines`;
 
 ## 15. Open TODOs before repo creation
 
-- [x] Package name: `whipple3` verified free on npm (2026-08-10). Still open: npm org + GitHub org/user availability (blocked from sandbox; 10-second check), and full legal name in LICENSE.
+- [x] Package name: `whipple3` verified free on npm (2026-08-10; re-verified 2026-08-11 along with GitHub org `whipple3` and the npm `@whipple3` scope — all free). Full legal name (Michael Vexler) in LICENSE as of 2026-08-11.
 - [ ] Pin minimum Claude Code version for the plugin.
 - [ ] Choose GitHub org/repo name; enable Actions matrix.
