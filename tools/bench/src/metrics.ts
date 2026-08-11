@@ -34,9 +34,17 @@ const lastUsagePerRequest = (assistants: readonly AssistantRecord[]): readonly U
   return [...byRequest.values()];
 };
 
+// A loop, not Math.max(...ts): spreading a long transcript's timestamps as arguments
+// blows the engine's argument-count limit around ~100k lines.
 const timeWindow = (timestamps: readonly number[]): number | null => {
   if (timestamps.length === 0) return null;
-  return Math.max(...timestamps) - Math.min(...timestamps);
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  for (const t of timestamps) {
+    if (t < min) min = t;
+    if (t > max) max = t;
+  }
+  return max - min;
 };
 
 const countByName = (names: readonly string[]): Readonly<Record<string, number>> => {

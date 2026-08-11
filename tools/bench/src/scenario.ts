@@ -173,7 +173,12 @@ export const runAuditScenario = async (cwd: string): Promise<string> => {
     for (const c of children) c.kill("SIGKILL");
   }
   const dir = join(cwd, ".whipple3");
-  const log = readdirSync(dir).find((f) => f.endsWith(".ndjson"));
+  // Newest session, not readdir order: stamps are fixed-width ISO, so the
+  // lexicographic max is the run we just drove — a reused outDir keeps old logs.
+  const log = readdirSync(dir)
+    .filter((f) => f.endsWith(".ndjson"))
+    .sort()
+    .at(-1);
   must(log !== undefined, "backend wrote a session log");
   return join(dir, log ?? "");
 };

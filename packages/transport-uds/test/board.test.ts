@@ -1,5 +1,5 @@
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
-import { connect } from "node:net";
+import { connect, createServer as createNetServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentId, principal, sessionId, txId } from "@whipple3/core";
@@ -209,7 +209,10 @@ describe("board server — socket path lifecycle", () => {
   it("reclaims a stale socket file nobody is listening on", async () => {
     const dir = mkdtempSync(join(tmpdir(), "w3uds-"));
     const socketPath = socketPathIn(dir);
-    writeFileSync(socketPath, ""); // a dead serve's leftovers
+    // A dead serve's real leftovers: closing a server does NOT unlink its socket file.
+    const dead = createNetServer();
+    await new Promise<void>((r) => dead.listen(socketPath, () => r()));
+    await new Promise<void>((r) => dead.close(() => r()));
     const { log } = { log: createMemoryLog() };
     const session = createSession({
       log,
@@ -223,6 +226,22 @@ describe("board server — socket path lifecycle", () => {
     cleanups.push(() => server.close());
     const c = await client(socketPath, "poster");
     expect((await c.post(postFile("f1"))).ok).toBe(true);
+  });
+
+  it("refuses a path holding a regular file — reclaim deletes sockets, never data", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "w3uds-"));
+    const socketPath = socketPathIn(dir);
+    writeFileSync(socketPath, "someone's data, not a socket");
+    const session = createSession({
+      log: createMemoryLog(),
+      acl: null,
+      sessionId: sessionId("s2"),
+      principal: null,
+      now: () => 0,
+      newTxId: () => txId("t"),
+    });
+    await expect(startBoardServer({ session, socketPath })).rejects.toThrow(/not a socket/);
+    expect(existsSync(socketPath)).toBe(true); // the file was not collateral damage
   });
 
   it("refuses the path while a live server owns it — one board per socket", async () => {

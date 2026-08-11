@@ -37,6 +37,15 @@ describe("extractTranscriptMetrics — orchestrator (main-thread) context accoun
     expect(metrics.malformedLines).toBe(1);
   });
 
+  it("survives a very large transcript — the wall window is loop-, not spread-, computed", () => {
+    // 150k timestamped lines: Math.max(...ts) would blow the argument-count limit.
+    const lines = Array.from({ length: 150_000 }, (_, i) =>
+      JSON.stringify({ type: "user", timestamp: new Date(1_700_000_000_000 + i * 1000) }),
+    );
+    const m = extractTranscriptMetrics(parseTranscript(lines.join("\n")));
+    expect(m.wallMs).toBe(149_999_000);
+  });
+
   it("yields null wall time when nothing carries a timestamp", () => {
     const empty = extractTranscriptMetrics(parseTranscript('{"type":"summary","summary":"x"}\n'));
     expect(empty.wallMs).toBeNull();

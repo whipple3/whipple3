@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { unlink } from "node:fs/promises";
 import { connect, createServer, type Socket } from "node:net";
 import { agentId } from "@whipple3/core";
@@ -37,6 +37,10 @@ const pathIsLive = (socketPath: string): Promise<boolean> =>
 
 const claimSocketPath = async (socketPath: string): Promise<void> => {
   if (!existsSync(socketPath)) return;
+  // Reclaim deletes a dead serve's SOCKET, never data: a mistyped --socket pointing
+  // at a real file must fail loudly, not silently unlink it.
+  if (!statSync(socketPath).isSocket())
+    throw new Error(`refusing ${socketPath}: exists and is not a socket`);
   if (await pathIsLive(socketPath))
     throw new Error(`refusing ${socketPath}: a live board already listens there`);
   await unlink(socketPath); // leftovers of a killed serve — reclaim
