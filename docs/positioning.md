@@ -189,6 +189,40 @@ but stated narrowly enough to survive a skeptical reader.
    one paragraph in the docs: the sukkah comes down, what it taught you moves to your memory
    system. Orthogonality to Letta bought for the price of a paragraph and no dependency.
 
+### Field check: the author's own prior art (2026-08-11)
+
+We read the agent layer of a production consumer SaaS (~770 domain modules, 67 edge
+functions, one live conversational agent plus single-purpose cron LLM jobs) whose agent
+infrastructure **the whipple3 author himself built, with Claude, in June–July 2026 —
+before whipple3 existed.** That changes what the evidence means, in both directions:
+
+- **This is NOT independent validation.** The same primitives are there — append-only event
+  log as source of truth with state re-derived by replay, expected-seq optimistic
+  concurrency, idempotent effect claims, TTL leases via `FOR UPDATE SKIP LOCKED`,
+  stale-claim recovery, HITL gates as chat-button events, a first-class stalled state — but
+  the designer is the same person. What it IS: prior art. whipple3 is the second time this
+  shape was built, extracted from a real product the first time. Tell it that way in the
+  launch post ("built it twice; this is the version you can install") — never as
+  convergent evolution.
+- **The cost datapoint is stronger than the team version.** Not a backend team — one
+  developer plus a coding agent produced the primitives in roughly three migrations. The
+  primitives are commodity. Any product team sitting on Postgres builds them on demand
+  (the code even carries the note *"if concurrency is ever added, swap this for a claim
+  RPC"*). The internal-product-runtime segment is therefore **not** the v0.1 wedge.
+- **What even the author didn't build for one agent:** per-agent identity (the actor column
+  is a four-value enum with `agent` undifferentiated), real turn claiming (single-flighted
+  cron, by the code's own admission), unified action audit (denials logged; allowed actions
+  scattered across three tables with no join key). Exactly whipple3's core. The trigger
+  line survives: one live agent needs none of it — while the dev-side coding agents on the
+  same project, coordinating across sessions and machines with no shared database, are
+  where the gap actually is.
+- **The honest doc line this earns:** *one agent and a Postgres? You don't need whipple3 —
+  you need `SKIP LOCKED`.* Publish it; it buys credibility with exactly the audience that
+  would otherwise leave it as a comment.
+- The product's workflow engine remains field evidence for Stage 6's design instincts: very
+  few effect kinds, gates as events, stalled as a first-class state ("nothing heals itself
+  silently").
+
 ## 5. What we never build
 
 Memory. Agent authoring. The execution layer. Messaging channels. Each one converts whipple3
@@ -199,7 +233,11 @@ from irreplaceable infrastructure into an inferior competitor.
 1. **Anthropic ships native shared state for subagents.** Erases the first wedge directly.
    Insurance: host independence (Stage 5) — the compatibility table is a policy, not a nicety.
 2. **LangGraph adds a shared store with permissions.** One quarter of work for them. Insurance:
-   do not compete on agent authoring; be reachable *from* LangGraph.
+   do not compete on agent authoring; be reachable *from* LangGraph. The §4 field check
+   generalizes this threat: even a solo developer with a coding agent rebuilds the *primitives*
+   on Postgres in a few migrations. What stays expensive to hand-roll — the actual moat — is
+   per-agent identity, two-sided ACL, the cross-host MCP surface, and the replay/Studio
+   tooling on the log.
 3. **The category does not exist.** Nobody searches for "blackboard for agents." Education cost
    is the thing that kills architecturally-correct projects.
 4. **Agent-to-agent protocols normalize "agents talk to each other"** as the default, and shared
