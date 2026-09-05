@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "dev": "node dev.mjs",
     "dev:fixture": "WHIPPLE3_FIXTURE=1 node dev.mjs",

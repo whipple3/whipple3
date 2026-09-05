@@ -32,11 +32,40 @@ let position = -1; // index of the last record folded into `model`
 let selected: string | null = null;
 let session = "?";
 
+/**
+ * A projected transcript gets a sentence about the SESSION; a board log keeps the engine
+ * counters. The distinction matters and is not cosmetic: "0 edges between agents" would be
+ * true by construction — the projection keeps tool nodes per-agent on purpose, so a shared
+ * node can never appear — and a number that cannot come out otherwise proves nothing. What
+ * IS a claim about the run: these agents had no shared state to write to, so a fact one of
+ * them found reached another only by passing through the parent's context, or not at all.
+ */
+const claimLine = (): string | null => {
+  let agents = 0;
+  let targets = 0;
+  let calls = 0;
+  for (const node of model.graph.nodes.values()) {
+    if (node.label === "agent") agents++;
+    if (node.label === "target") {
+      targets++;
+      calls += Number(node.props.calls ?? 0);
+    }
+  }
+  if (agents === 0) return null;
+  return (
+    `${agents} agents · ${targets} targets reached by more than one of them · ` +
+    `${calls.toLocaleString()} calls paid separately — no shared state existed to read the answer from`
+  );
+};
+
 const renderStatus = (): void => {
   const where = mode === "live" ? "LIVE" : `PAUSED @ ${position + 1}/${records.length}`;
+  const claim = claimLine();
   statusEl.textContent =
-    `whipple3 studio — session ${session} · ${records.length} records · ` +
-    `${graph.order} nodes · ${graph.size} edges · ${where}`;
+    claim === null
+      ? `whipple3 studio — session ${session} · ${records.length} records · ` +
+        `${graph.order} nodes · ${graph.size} edges · ${where}`
+      : `whipple3 studio — ${claim} · ${where}`;
 };
 
 const refresh = (): void => {

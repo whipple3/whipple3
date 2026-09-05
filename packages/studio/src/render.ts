@@ -23,19 +23,24 @@ const seedPosition = (id: string): { readonly x: number; readonly y: number } =>
 export const syncGraph = (graph: Graph, model: StudioModel): void => {
   for (const node of model.graph.nodes.values()) {
     const held = model.held.get(node.id);
+    // `target` nodes come from a projected transcript and outnumber the agents several
+    // times over; their paths are the noise that buries the picture — and the shape (who
+    // clusters around what) is the point, not the filename. Null label = sigma draws the
+    // dot and nothing else; clicking still opens the full node, path included, in the panel.
+    const naming = node.label === "target" ? null : `${node.id} · ${node.label}`;
     const attrs =
       held === undefined
         ? {
             color: colorForLabel(node.label),
             size: NODE_SIZE,
             highlighted: false,
-            label: `${node.id} · ${node.label}`,
+            label: naming,
           }
         : {
             color: colorForAgent(held.agentId),
             size: HELD_SIZE,
             highlighted: true,
-            label: `${node.id} · ${node.label} · held by ${held.agentId}`,
+            label: naming === null ? null : `${naming} · held by ${held.agentId}`,
           };
     if (graph.hasNode(node.id)) graph.mergeNodeAttributes(node.id, attrs);
     else graph.addNode(node.id, { ...seedPosition(node.id), ...attrs });

@@ -3,18 +3,16 @@ import { defineCommand, runMain } from "citty";
 import { distill } from "./distill.js";
 import { mcp } from "./mcp.js";
 import { ping } from "./ping.js";
+import { replay } from "./replay.js";
 import { serve } from "./serve.js";
+import { studio } from "./studio.js";
 import { VERSION } from "./version.js";
 
-/** Registry only — one command per file. FROZEN mid-wave; commands own their own files. */
-const stub = (name: string) =>
-  defineCommand({
-    meta: { name, description: `${name} (see ROADMAP.md)` },
-    run() {
-      console.log(`whipple3 ${name}: not implemented yet — see ROADMAP.md.`);
-    },
-  });
-
+/**
+ * Registry only — one command per file; commands own their own files.
+ * Every entry here works. A planned command lives in ROADMAP.md until it does,
+ * never as a subcommand that prints "not implemented" into a stranger's `--help`.
+ */
 const main = defineCommand({
   meta: {
     name: "whipple3",
@@ -23,13 +21,12 @@ const main = defineCommand({
       "whipple3 — a typed, ephemeral, event-sourced blackboard for coordinating AI agents.",
   },
   subCommands: {
-    init: stub("init"),
     mcp,
     serve,
     ping,
     distill,
-    studio: stub("studio"),
-    replay: stub("replay"),
+    studio,
+    replay,
   },
 });
 

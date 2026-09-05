@@ -41,6 +41,8 @@
   "devDependencies": {
     "@whipple3/core": "workspace:*",
     "@whipple3/log": "workspace:*",
+    "@whipple3/studio": "workspace:*",
+    "@whipple3/transcript": "workspace:*",
     "@whipple3/transport-mcp": "workspace:*",
     "@whipple3/transport-uds": "workspace:*"
   }
