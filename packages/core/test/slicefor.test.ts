@@ -134,17 +134,17 @@ describe("sliceFor — role-declared slices (SPEC §4.7, ROADMAP Stage 2)", () =
   it("an unreadable root yields an empty slice", () => {
     const readable = ALL.filter((l) => l !== "CodeFile");
     const slice = sliceFor(audited(), nodeId("f1"), AuditorSlice, readable);
-    expect(slice).toEqual({ nodes: [], edges: [] });
+    expect(slice).toEqual({ nodes: [], edges: [], claims: [] });
   });
 
   it("a root whose label is not the declared root yields an empty slice", () => {
     const slice = sliceFor(audited(), nodeId("r1"), AuditorSlice, ALL);
-    expect(slice).toEqual({ nodes: [], edges: [] });
+    expect(slice).toEqual({ nodes: [], edges: [], claims: [] });
   });
 
   it("a missing root yields an empty slice", () => {
     const slice = sliceFor(audited(), nodeId("ghost"), AuditorSlice, ALL);
-    expect(slice).toEqual({ nodes: [], edges: [] });
+    expect(slice).toEqual({ nodes: [], edges: [], claims: [] });
   });
 
   it("an edge between two included nodes in an undeclared orientation is not emitted", () => {

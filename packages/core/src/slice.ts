@@ -6,12 +6,18 @@
  */
 import type { NodeId } from "./ids.js";
 import type { FollowRule, SliceDecl, Trigger } from "./schema.js";
-import type { EdgeRecord, GraphState, NodeRecord } from "./state.js";
+import type { ClaimRecord, EdgeRecord, GraphState, NodeRecord } from "./state.js";
 
 export interface Slice {
   readonly nodes: readonly NodeRecord[];
   readonly edges: readonly EdgeRecord[];
+  /** Raw claim records for nodes in the slice. Expiry is the reader's call: compare expiresAt. */
+  readonly claims: readonly ClaimRecord[];
 }
+
+/** A read-only gate needs holders without taking a lease; the slice carries them. */
+const claimsOn = (state: GraphState, ids: ReadonlySet<NodeId>): readonly ClaimRecord[] =>
+  [...state.claims.values()].filter((c) => ids.has(c.nodeId));
 
 /**
  * The pull-mode work queue: `when()` triggers compile to exactly this query. (SPEC §4.4)
@@ -77,7 +83,7 @@ const bfs = (
   const edges = [...state.edges.values()].filter(
     (e) => canSee(e.label) && seen.has(e.from) && seen.has(e.to),
   );
-  return { nodes, edges };
+  return { nodes, edges, claims: claimsOn(state, seen) };
 };
 
 /** The unfiltered primitive — internal/trusted callers (studio, replay) only. */
@@ -158,7 +164,7 @@ export const sliceFor = (
   const allowed = new Set(readable);
   const rootNode = state.nodes.get(root);
   if (rootNode === undefined || rootNode.label !== decl.root || !allowed.has(rootNode.label)) {
-    return { nodes: [], edges: [] };
+    return { nodes: [], edges: [], claims: [] };
   }
 
   const seen = new Set<NodeId>([root]);
@@ -186,5 +192,5 @@ export const sliceFor = (
   const edges = [...state.edges.values()].filter(
     (e) => allowed.has(e.label) && seen.has(e.from) && seen.has(e.to) && declaredBy(e),
   );
-  return { nodes, edges };
+  return { nodes, edges, claims: claimsOn(state, seen) };
 };

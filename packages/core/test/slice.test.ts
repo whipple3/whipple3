@@ -147,3 +147,36 @@ describe("readableNeighborhood — policy-filtered slicing (SPEC §4.6, §4.7)",
     );
   });
 });
+
+describe("Slice.claims — holders travel with the slice (forge gate D7)", () => {
+  const claimed = (): GraphState =>
+    mustApply(seeded(), {
+      kind: "CLAIM_NODE",
+      id: nodeId("f1"),
+      agentId: agentId("feat/a"),
+      now: 0,
+      ttlMs: 1000,
+    });
+
+  it("a claim on a node in the slice is in slice.claims, raw, with expiresAt", () => {
+    const s = neighborhood(claimed(), nodeId("f1"), 0);
+    expect(s.claims).toEqual([
+      { nodeId: nodeId("f1"), agentId: agentId("feat/a"), expiresAt: 1000 },
+    ]);
+  });
+
+  it("a claim on a node OUTSIDE the slice never appears", () => {
+    const s = neighborhood(claimed(), nodeId("i1"), 0);
+    expect(s.claims).toEqual([]);
+  });
+
+  it("property: every claim in a readable slice names a node of that slice", () => {
+    fc.assert(
+      fc.property(fc.constantFrom("CodeFile", "SecurityIssue"), (label) => {
+        const s = readableNeighborhood(claimed(), nodeId("f1"), 2, [label]);
+        const ids = new Set(s.nodes.map((n) => n.id));
+        return s.claims.every((c) => ids.has(c.nodeId));
+      }),
+    );
+  });
+});

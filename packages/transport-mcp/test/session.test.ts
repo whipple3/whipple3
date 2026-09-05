@@ -336,7 +336,7 @@ describe("session — parse → acl → apply → append (CLAUDE.md W1 §1)", ()
     await seedIssueGraph(as);
     const r = await as("reporter").read({ root: "ghost" });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.value).toEqual({ nodes: [], edges: [] });
+    if (r.ok) expect(r.value).toEqual({ nodes: [], edges: [], claims: [] });
     expect((await log.read()).at(-1)?.event.type).not.toBe("acl.denied");
   });
 
