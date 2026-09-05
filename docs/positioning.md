@@ -170,7 +170,7 @@ but stated narrowly enough to survive a skeptical reader.
 |---|---|---|---|
 | 0 — trial (60s) | `npx whipple3 serve` + one `mcp add` line | Log, Studio, live graph | **npm publish.** Without `npx` there is no install, only a `git clone` |
 | 1 — the wedge (second agent) | Another `--agent`, claims | Zero duplicate work, zero lost updates | The Stage 4 benchmark number |
-| 2 — the ratchet (CI) | `whipple3 replay <log>` in the pipeline | Coordination regressions caught before a human sees them | `replay` is a stub |
+| 2 — the ratchet (CI) | `whipple3 replay <log>`, then `@whipple3/assert` in the test suite | Coordination regressions caught before a human sees them | **Both shipped 2026-08-11.** `replay` checks the log is sound; `assert` checks the work satisfied its contract. Hop budgets and cost ceilings still blocked on emitters that do not exist |
 | 3 — the org | Shared `serve --policy` | "What did our agents do, under which policy, what got blocked" | Exists; this is the commercial stage |
 
 ### Roadmap consequences

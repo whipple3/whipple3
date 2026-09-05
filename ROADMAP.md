@@ -86,11 +86,11 @@ and the run completes without an orchestrator babysitting it.
 
 ---
 
-## Stage 3 — Studio: the thing people screenshot ✅ DONE (CLI wiring pending)
+## Stage 3 — Studio: the thing people screenshot ✅ DONE
 
 The adoption driver. This is the stage that decides whether anyone ever hears about whipple3.
-Built and working via `pnpm --filter @whipple3/studio dev <log>`; the `whipple3 studio` /
-`whipple3 replay` commands are the remaining stubs.
+Shipped as `whipple3 studio <log>`, with `--demo` running a self-generating session so a first
+run needs no board, no agents and no host wiring.
 
 - Vite + vanilla TS + sigma.js over graphology, fed by SSE from `ReadonlyLog`.
   graphology lives only here.
@@ -99,7 +99,11 @@ Built and working via `pnpm --filter @whipple3/studio dev <log>`; the `whipple3 
 - Click a node → its mutation history and the agent that produced it.
 - **Time-travel scrubber** — replay the session from the log. Free consequence of the
   pure reducer; the single most demo-able feature in the project.
-- `whipple3 studio` command; `whipple3 replay <log>` for post-mortems.
+- `whipple3 studio` command ✅ — plain `node:http` serving the built page beside the bin,
+  plus the `/events` SSE tail; `--demo` drives the fixture into a throwaway log.
+- `whipple3 replay <log>` ✅ — re-folds the log through core's pure `replay()` and fails
+  the build (exit 1) on a seq break, a mutation that no longer applies, or a duplicate
+  claim. Schema-free by design; asserting over typed trajectories stays Stage 7.
 
 **Done means:** a 20-second screen recording that makes a stranger understand the product
 without narration.
@@ -143,9 +147,16 @@ Turning "not locked to any vendor" from a claim into a recording.
 
 ---
 
-## Stage 6 — Push mode: whipple3 runs the loop
+## Stage 6 — Push mode ⛔ RETIRED AS A BUILD (2026-08-12, ADR-010 item 6)
 
-The step from "radio dispatch" to automatic matching. Only worth doing if Stages 1–4 found users.
+The step from "radio dispatch" to automatic matching. Only worth doing if Stages 1–4 found
+users — and, as written below, **not worth building at all.**
+
+Everything in the scheduler list is a description of durable execution: Temporal, and behind
+it DBOS, Restate, Inngest. A decade of hardening, multi-language SDKs, and now aimed at
+agents explicitly. SPEC §3 already forbids rebuilding that layer. **If push mode ever
+happens it is an adapter over one of those engines, and the bullets below are the checklist
+of what the adapter gets for free rather than a plan.** Kept verbatim for that purpose.
 
 - **Scheduler:** matching → per-agent queues → dispatch; concurrency caps, batching,
   backpressure. XState for the agent lifecycle state machine
@@ -172,10 +183,15 @@ Emit, don't store. Both are adapters because the event taxonomy was reserved on 
 - `@whipple3/evals`:
   1. **Deterministic replay tests** — session logs as fixtures + VCR-style LLM
      record/replay; coordination regressions caught in CI with zero API calls.
-  2. **Trajectory assertions over typed state** — the novel tier:
-     `expect(final).toSatisfy(CodeFile.all({ status: "audited" }))`,
-     `expect(trace).maxHops(5)`, `expect(session.cost).lessThan(x)`.
-     Existing eval tools judge text; whipple3 judges structured state trajectories.
+  2. **Trajectory assertions over typed state** — the novel tier. **✅ Pulled ahead and
+     shipped 2026-08-11 as `@whipple3/assert`**, per `docs/positioning.md` §4: it is the
+     only roadmap item that puts whipple3 into someone else's CI, and `replay` made it
+     nearly free. `every` / `none` / `atLeast` over the final typed state, plus
+     `noDenials` and `allClaimsReleased` over the enforcement record; a pure fold, so the
+     verdict is deterministic. **`maxHops` and cost ceilings are NOT shipped** — nothing
+     chains `causationId` and nothing emits `llm.call`, and an assertion over an empty
+     stream is worse than none. They unblock with Stage 6's scheduler and the OTel work
+     above; do not add either before an emitter exists.
   3. **LLM-as-judge** on distilled output — commodity, pluggable scorer interface.
 - SQLite log adapter (prefer built-in `node:sqlite`), passing the same conformance suite.
 

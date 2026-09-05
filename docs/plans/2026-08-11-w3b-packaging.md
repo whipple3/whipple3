@@ -91,6 +91,7 @@ New "Quick start" immediately after the preamble, the real path in order:
 4. Wire agents: per-agent proxies `whipple3 mcp --board .whipple3/board.sock --agent <id>` via `claude mcp add`, OR the plugin path: `claude --plugin-dir .../examples/claude-code-plugin` → `/whipple3:audit` (link to the example README).
 5. `whipple3 distill .whipple3/session-<ts>.ndjson` → report.md.
 6. Studio: `pnpm --filter @whipple3/studio dev -- <log>` (note: `whipple3 studio` not wired yet).
+   — superseded 2026-08-11: `whipple3 studio <log>` and `whipple3 studio --demo` now ship in the bin.
 
 ### Task 8: Measure the quickstart cold
 

@@ -129,7 +129,9 @@ packages/
   log/            # LogStore port + memory + jsonl + conformance/
   transport-mcp/  # tools.ts (schemas derived from core), server.ts (shell)
   studio/         # graphology + sigma.js live ONLY here (ADR-004)
-  cli/            # init | mcp | studio | replay
+  transcript/     # Claude Code transcript → whipple3 log (foreign format lives ONLY here)
+  assert/         # trajectory assertions over a finished log (Stage 7 tier 2)
+  cli/            # mcp | serve | ping | distill | studio | replay
 examples/
   claude-code-plugin/   # .mcp.json + .claude/agents/* + /audit command
 ```
@@ -248,6 +250,7 @@ TypeScript strict, **ESM-only, Node ≥ 22** (matches every package's `engines`;
 | 007 | Identity binds at `session.connect`, never in a tool payload; `principal` in `EventMeta` |
 | 008 | Two-sided ACL: reads filtered during traversal; every denial logged as `acl.denied` |
 | 009 | Board lifetime is a session parameter; purge is explicit and never core's business |
+| 010 | Positioning: reputation over adoption; Bobcat-with-attachments; fleet-view rejected; "slots underneath" resolved; robotics + durable-execution prior art; Stage 6 becomes an adapter (no code impact) |
 
 ## 14. Risks
 
@@ -259,4 +262,5 @@ TypeScript strict, **ESM-only, Node ≥ 22** (matches every package's `engines`;
 
 - [x] Package name: `whipple3` verified free on npm (2026-08-10; re-verified 2026-08-11 along with GitHub org `whipple3` and the npm `@whipple3` scope — all free). Full legal name (Michael Vexler) in LICENSE as of 2026-08-11.
 - [ ] Pin minimum Claude Code version for the plugin.
-- [ ] Choose GitHub org/repo name; enable Actions matrix.
+- [x] GitHub org/repo chosen and created: `whipple3/whipple3` (2026-08-11); Actions run on
+      push and are green.

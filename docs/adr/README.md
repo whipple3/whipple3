@@ -14,3 +14,4 @@ numbers 001–006 match SPEC §13. New decisions take the next free number.
 | [007](./ADR-007-identity-from-connection.md) | Identity from the connection, never from the payload |
 | [008](./ADR-008-two-sided-acl-logged-denials.md) | Two-sided ACL: reads filtered during traversal, every denial logged |
 | [009](./ADR-009-board-lifetime-as-parameter.md) | Board lifetime is a parameter, not an assumption |
+| [010](./ADR-010-positioning-reset-reputation-over-adoption.md) | Positioning reset: reputation over adoption; robotics + durable-execution prior art; Stage 6 retired as a build |

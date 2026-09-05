@@ -55,8 +55,10 @@ still reviews the diff/output).
       (+ the CLI's citty `version` string) — found already done, verified 2026-08-11.
       `pnpm pack` smoke for core / log / transport-mcp / transport-uds: dist + LICENSE
       + README present, zero `workspace:` deps in packed manifests; the cli tarball is
-      covered by `pack.smoke.test` (green from the clean clone). Studio is `private` —
-      correctly excluded from publish.
+      covered by `pack.smoke.test` (green from the clean clone). Studio stays `private` —
+      never published as a package. Its **built page** does ship, inside the cli tarball:
+      tsup's `onSuccess` copies `packages/studio/dist` to `packages/cli/dist/studio`, which
+      `files: ["dist"]` already carries (2026-08-11, wiring `whipple3 studio`).
 - [ ] **[Michael]** `pnpm publish` — MUST be pnpm, not npm: the `workspace:*` rewrite,
       the `publishConfig` exports swap, and root-LICENSE injection are pnpm behaviors
       (`npm publish` would ship a broken manifest — W3-B). Dependency order for the four

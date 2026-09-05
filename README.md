@@ -13,6 +13,11 @@
 
 One agent doesn't need whipple3. **Two do.**
 
+**Small enough to audit before you trust it: 4,038 lines of TypeScript across every package** —
+657 of them the coordination core, which runs on one runtime dependency (Zod) and is
+property-tested with fast-check. Count it yourself:
+`find packages/*/src -name '*.ts' | xargs wc -l`.
+
 Keep your framework. whipple3 slots underneath it: agents don't chat and don't funnel everything
 through an orchestrator's context — they read and write a shared typed graph through structured,
 versioned, ACL-checked mutations. Every mutation passes one enforcement point, and the append-only
@@ -74,14 +79,60 @@ alone serves a private single-process board over stdio.
 whipple3 distill .whipple3/session-<ts>.ndjson    # → .whipple3/session-<ts>.report.md
 ```
 
-**5. Watch it live** (optional, from this repo while `whipple3 studio` wiring is pending):
+**5. Watch it live.** Three sources, in ascending order of what they ask of you:
 
 ```bash
-pnpm --filter @whipple3/studio dev /path/to/.whipple3/session-<ts>.ndjson
+whipple3 studio --session          # your last Claude Code session — nothing to set up
+whipple3 studio --demo             # a self-generating fixture, if you have no session
+whipple3 studio .whipple3/session-<ts>.ndjson    # a real board's log
 ```
+
+`--session` reads a transcript you already have (`~/.claude/projects/…`), projects it onto
+the graph and prints the line that started this project:
+
+```
+77 agents (76 subagents) · 6398 tool calls · 190 targets touched by more
+than one agent (1329 calls)
+```
+
+Read-only, and it stays on your machine — nothing is uploaded.
+
+Agents become nodes, and so do the **targets** they aimed at — the file, command or URL —
+shared between every agent that touched one. That sharing is not drawn in; it is what the
+session already contained and nobody could see. So the picture is a web: your agents,
+entangled through the files they each paid to read, having never exchanged a word. A target
+only one agent touched gets no node, because it says nothing about the fleet; its calls are
+still counted on that agent.
+
+It is a normal whipple3 log, so `whipple3 replay` and `whipple3 distill` work on it, and
+`tools/duplication` puts a number on the same picture.
 
 Live graph, claims tinted per holding agent, per-node history, a time-travel scrubber over
 the log.
+
+**6. Assert it in CI.** Eval tools judge what an agent *said*. `@whipple3/assert` judges
+what a fleet *left behind* — the typed state, and the enforcement record of reaching it:
+
+```ts
+import { sessionFromLog, run, format, every, none, atLeast, noDenials, allClaimsReleased }
+  from "@whipple3/assert";
+
+const session = await sessionFromLog(".whipple3/session-<ts>.ndjson");
+const report = run(session,
+  atLeast("CodeFile", 1),                          // guards the vacuous pass below
+  every("CodeFile", (p) => p.status === "audited"),
+  none("SecurityIssue", (p) => p.status === "pending"),
+  noDenials(),
+  allClaimsReleased(),                             // nobody died holding their work
+);
+if (!report.ok) throw new Error(format(report));
+```
+
+Run against the real five-agent audit log from 2026-08-11, all five pass. It is a pure fold
+of the log, so the verdict is deterministic even though the models are not — which is the
+only reason a coordination regression can fail a build. Hop budgets and cost ceilings are
+**deliberately absent**: nothing emits `causationId` chains or `llm.call` yet, and an
+assertion over an empty stream is worse than no assertion.
 
 ## Hosts
 
@@ -117,8 +168,10 @@ Pre-release (v0.1 vertical slice — see [SPEC.md](./SPEC.md) §12). What's real
   socket, per-agent connections with identity bound at connect.
 - `whipple3` — the CLI: `serve` (the board backend, with `--policy`), `mcp --board <sock>
   --agent <id>` per-agent proxies (or `mcp --agent <id>` standalone), `distill <log>` →
-  report.md. `init` / `studio` / `replay` are still stubs; session traces live under
-  `.whipple3/`.
+  report.md, `studio <log> | --demo` — the live graph, served from the bin with the built
+  page shipped beside it — and `replay <log>`, which re-folds the log through the pure
+  reducer and exits non-zero if it fails to reproduce itself. Every command in `--help`
+  works — nothing there is a stub. Session traces live under `.whipple3/`.
 
 First target: a shared blackboard for **Claude Code subagents** — parallel workers that
 claim tasks instead of colliding, with a live graph Studio. See `examples/claude-code-plugin/`.

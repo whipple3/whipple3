@@ -63,7 +63,10 @@ Out of scope until the wave doc says otherwise: push scheduler, XState, OTel, sa
 packages/core           pure reducer, ids, events, acl, claims, slices  (test/ = fast-check)
 packages/log            LogStore port + memory/jsonl + conformance/
 packages/transport-mcp  tools.ts (Zod schemas) · server.ts + session.ts (W1)
-packages/cli            whipple3 bin: init | mcp | studio | replay
+packages/transcript     Claude Code transcript parser + projection to a whipple3 log
+packages/assert         trajectory assertions over a finished log (Stage 7 tier 2)
+tools/duplication       work-paid-twice measurement over transcripts (ADR-010 evidence)
+packages/cli            whipple3 bin: mcp | serve | ping | distill | studio | replay
 packages/studio         Stage 3 — owned by the studio wave-package only
 examples/claude-code-plugin   the /audit demo: scanner, auditors, fixer
 ```

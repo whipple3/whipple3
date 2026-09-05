@@ -104,7 +104,62 @@ dependency-cruiser import direction, Vitest + fast-check property tests).
 - Live/paused SSE streaming over `ReadonlyLog`; ForceAtlas2 layout. All graph-rendering
   dependencies live only in the studio package.
 - The log tail reports a stall (e.g. a poisoned line that fails every reread) to the
-  dev-server terminal instead of starving silently; a successful poll re-arms it.
+  terminal instead of starving silently; a successful poll re-arms it.
+- Shipped in the bin as `whipple3 studio <log>`: a plain `node:http` server for the built
+  page plus the `/events` SSE tail, no dev server involved. `whipple3 studio --demo` drives
+  the fixture into a throwaway log, so a first run needs no board, no agents and no host
+  wiring — the one command that shows the product on its own.
+
+### `whipple3 studio --session` — your own last run, as a graph
+
+- `@whipple3/transcript` reads a Claude Code session from disk (`~/.claude/projects/…`,
+  main thread plus `subagents/agent-*.jsonl` sidecars, agent names from the `.meta.json`)
+  and projects it into an ordinary whipple3 log: one node per agent, one per tool call,
+  edges from each agent to its own calls, ordered by timestamp.
+- Nothing to install into, nothing to wire: no board, no MCP server, no agent changes.
+  The transcript already exists. Read-only, and it never leaves the machine.
+- Because the output is a real log, `replay` and `distill` compose on it, and the Studio's
+  scrubber replays a session that already happened.
+- **Targets are shared nodes.** The file, command or URL a call was aimed at becomes one
+  node, joined to every agent that touched it. Nothing is invented: two agents reading one
+  file do stand in a relation, through the file, and the projection draws the relation the
+  session already had. A target only one agent reached gets no node — it says nothing about
+  the fleet — and its calls stay counted on that agent as `untargetedCalls`/`toolCalls`, so
+  the filter is visible rather than silent.
+- The result is a picture of **contention without communication**: agents entangled through
+  the files they each paid to read, having exchanged nothing. A transcript records what each
+  agent *did* and never what any of them *shared*, because there is no shared state in it to
+  read. Describe the output as contention and its absence; never as coordination.
+- `primaryTarget` lives in `@whipple3/transcript`, not in the measuring tool, so the picture
+  and `tools/duplication`'s number can never disagree about what "the same target" means.
+
+### `@whipple3/assert` — judging the trajectory, not the text
+
+- Assertions over a finished session: `every` / `none` / `atLeast` against the final typed
+  state, `noDenials` and `allClaimsReleased` against the enforcement record. Pure functions
+  of the log through the same reducer the board runs, so a verdict cannot disagree with what
+  happened, and it is deterministic while the models are not.
+- No test-runner dependency: checks return `{ ok, message }` and compose through `run(...)`.
+  Use them inside vitest, inside a script, or straight in a pipeline step.
+- `none` and `every` always print the population they examined, including zero — a
+  misspelled label would otherwise pass in silence, and a green check that looked at nothing
+  is the worst output this package could produce. `atLeast` is the explicit guard.
+- **Not shipped, on purpose:** hop budgets and cost ceilings. `EventMeta.causationId` is
+  always null and nothing emits `llm.call`; both assertions would have been green over an
+  empty stream. They wait for Stage 6 and the OTel adapter.
+- Verified against the real five-agent audit log of 2026-08-11: all five checks pass.
+
+### `whipple3 replay` — the log checked in CI
+
+- Re-folds a session log through core's pure `replay()` and exits non-zero on a
+  violation: a break in `seq` (a torn or spliced write), a mutation that no longer
+  applies against the state the log itself produced, or a node claimed by a second agent
+  before a release or an expiry.
+- That last check is the README's headline claim made falsifiable — "zero duplicate
+  claims" stops being a sentence and becomes a build failure. Verified against the real
+  five-agent audit log from 2026-08-11: 66 records, zero violations.
+- `--json` emits the verdict for a pipeline step. Schema-free on purpose: it checks that
+  coordination held, never whether the work was correct.
 
 ### Claude Code plugin demo: `/whipple3:audit`
 
@@ -129,8 +184,15 @@ dependency-cruiser import direction, Vitest + fast-check property tests).
 - **ACL in the demo requires `--policy`.** `whipple3 serve` without a policy file runs
   with no ACL; the label-level write discipline then rests on host tool allowlists and
   prompts. Pass `--policy` to make `checkAcl` enforce it on the board.
-- **CLI stubs:** `whipple3 init`, `studio`, and `replay` print a pointer and exit;
-  Studio currently runs as a Vite dev app inside `packages/studio`.
+- **No `whipple3 init`.** Scaffolding is not in v0.1; wiring is the two commands in the
+  README quickstart. The subcommand was removed rather than shipped as a stub — every
+  command in `--help` does what it says.
+- **`replay` verifies integrity, not intent.** It proves a log reproduces itself and that
+  no claim was double-held; it cannot assert that the agents did the *right* work. Typed
+  trajectory assertions are Stage 7.
+- **Studio watches one log at a time.** A developer running many sessions across several
+  worktrees gets one board per Studio; there is no cross-session view, and none across
+  machines — a cloud session cannot reach a local Unix socket.
 - **No published benchmark numbers yet.** The harness and runbook exist
   (`tools/bench`); the numbers ship before the launch post does, or the post ships
   without the claim.
