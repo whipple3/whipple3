@@ -3,6 +3,7 @@ import { defineCommand, runMain } from "citty";
 import { claim } from "./claim.js";
 import { distill } from "./distill.js";
 import { mcp } from "./mcp.js";
+import { merge } from "./merge.js";
 import { ping } from "./ping.js";
 import { pr } from "./pr.js";
 import { release } from "./release.js";
@@ -30,6 +31,7 @@ const main = defineCommand({
     claim,
     release,
     pr,
+    merge,
     distill,
     studio,
     replay,

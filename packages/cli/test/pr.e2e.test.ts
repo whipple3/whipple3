@@ -129,3 +129,27 @@ describe("whipple3 pr merged — releases the branch's files, marks the node", (
     expect(r.code).toBe(0);
   });
 });
+
+describe("whipple3 merge — gate, forge command, release; stops at the first failure", () => {
+  it("held ⇒ forge command never runs, exit 2", async () => {
+    await run(cwd, "pr", "open", "src/d.ts", "--agent", "feat/a", "--number", "14");
+    await run(cwd, "pr", "merged", "--agent", "feat/a", "--number", "14");
+    await run(cwd, "claim", "src/d.ts", "--agent", "feat/b");
+    const marker = join(cwd, "ran");
+    const r = await run(cwd, "merge", "--agent", "feat/a", "--number", "14", "--", "touch", marker);
+    expect(r.stdout).toBe("held src/d.ts by feat/b\n");
+    expect(r.code).toBe(2);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  it("clear ⇒ forge runs; a failing forge leaves claims held; a passing one releases", async () => {
+    await run(cwd, "pr", "open", "src/e.ts", "--agent", "feat/a", "--number", "15");
+    const bad = await run(cwd, "merge", "--agent", "feat/a", "--number", "15", "--", "false");
+    expect(bad.stderr).toContain("forge command failed");
+    expect(bad.code).toBe(1);
+    expect((await run(cwd, "claim", "src/e.ts", "--agent", "feat/b")).code).toBe(2);
+    const good = await run(cwd, "merge", "--agent", "feat/a", "--number", "15", "--", "true");
+    expect(good.stdout).toBe("clear\npr 15 merged\nreleased src/e.ts\n");
+    expect(good.code).toBe(0);
+  });
+});
