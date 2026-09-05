@@ -255,8 +255,30 @@ A field note from the author's own product the same day: a green PR waited three
 5–12 minutes — four merges refused, ten automatic head updates before a quiet window. The
 forge's rule is blind: it re-verifies against *every* commit because it cannot tell which ones
 touch the PR's files. The board can. When no other branch held any of the PR's files, the
-"up to date" rebuild is proving nothing. That is the gate's next argument, and the next
-measurement to publish.
+"up to date" rebuild is proving nothing.
+
+Measured the same day from git (the board was not running there; file-level overlap is
+exactly the board's rule): PR #2777 in showme-ui, 13 files, eleven merges from `main` into
+the branch over its life. Per merge — `main` commits pulled in, files they changed, and the
+intersection with the PR's files:
+
+| when (UTC) | main commits | files changed on main | overlap with the PR |
+|---|---|---|---|
+| 09-02 18:28 | 3 | 19 | 1 (`threeDMount.ts`) |
+| 09-02 18:55 | 3 | 13 | 0 |
+| 09-02 19:58 | 1 | 9 | 0 |
+| 09-02 20:23 | 5 | 1 | 0 |
+| 09-05 11:34 | 53 | 462 | 0 |
+| 09-05 11:37 → 12:10 (six automatic updates) | 1 · 1 · 1 · 1 · 1 · 11 | 5 · 7 · 3 · 13 · 2 · 7 | 0 each |
+
+Ten of eleven updates pulled nothing that touched the PR's files; all seven automatic
+"update branch" rounds on merge day were among them. One rebuild — after the first, manual
+merge — was justified. The rest, roughly four hours of a 25-minute build in a loop, were
+the forge verifying against commits the board would have told it were disjoint.
+The caveat is the board's caveat: file-level is not semantic-level. A change to a type in a
+file the PR imports but did not touch is invisible to both. That is why the *first* build
+stays, and why the argument is against the *re-run per head update*, not against CI.
+Script and raw output: `docs/measurements/2026-09-05-pr2777-head-updates.md`.
 
 ## 6. Threats, in order
 
