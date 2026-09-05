@@ -3,6 +3,7 @@
 export type { Assertion, Check, Report } from "./assertions.js";
 export {
   allClaimsReleased,
+  approvedBeforeMerge,
   atLeast,
   every,
   format,

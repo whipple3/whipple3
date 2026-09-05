@@ -1,4 +1,4 @@
-import type { NodeRecord } from "@whipple3/core";
+import type { Mutation, NodeRecord } from "@whipple3/core";
 import type { Session } from "./session.js";
 
 /**
@@ -112,3 +112,36 @@ export const run = (session: Session, ...assertions: readonly Assertion[]): Repo
 /** One line per check, `✓`/`✗`, for a CI log. */
 export const format = (report: Report): string =>
   report.checks.map((c) => `${c.ok ? "✓" : "✗"} ${c.message}`).join("\n");
+
+const prOf = (m: Mutation): number | null => {
+  if (m.kind !== "ADD_NODE" && m.kind !== "UPDATE_NODE") return null;
+  return typeof m.props.pr === "number" ? m.props.pr : null;
+};
+
+const mergedPr = (m: Mutation): number | null => {
+  if (m.kind !== "UPDATE_NODE" || m.props.state !== "merged") return null;
+  const n = Number(String(m.id).replace(/^pr:/, ""));
+  return String(m.id).startsWith("pr:") && Number.isInteger(n) ? n : null;
+};
+
+/**
+ * Every merge was preceded by an approve on the board, and nothing revoked it before the
+ * merge. Read off the log in order — the final state cannot tell "approved then merged"
+ * from "merged then approved".
+ */
+export const approvedBeforeMerge = (): Assertion => (session) => {
+  const latest = new Map<number, unknown>();
+  const failing: string[] = [];
+  for (const r of session.records) {
+    if (r.event.type !== "graph.mutation") continue;
+    const m = r.event.mutation;
+    const reviewed = prOf(m);
+    if (reviewed !== null && "props" in m && "verdict" in m.props)
+      latest.set(reviewed, m.props.verdict);
+    const merged = mergedPr(m);
+    if (merged !== null && latest.get(merged) !== "approve") failing.push(`pr:${merged}`);
+  }
+  return failing.length === 0
+    ? { ok: true, message: "every merge followed an approve" }
+    : { ok: false, message: `merged without a standing approve: ${failing.join(", ")}` };
+};

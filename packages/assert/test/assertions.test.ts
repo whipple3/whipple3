@@ -2,6 +2,7 @@ import { agentId, type LogRecord, type Mutation, nodeId, sessionId, txId } from 
 import { describe, expect, it } from "vitest";
 import {
   allClaimsReleased,
+  approvedBeforeMerge,
   atLeast,
   every,
   format,
@@ -140,5 +141,57 @@ describe("assertions over a coordination trajectory", () => {
       every("finding", (p) => p.status === "triaged"),
     );
     expect(a).toEqual(b);
+  });
+});
+
+describe("approvedBeforeMerge — order in the log, not shape of the state", () => {
+  const mutation = (m: Mutation, agent?: string) =>
+    record({ type: "graph.mutation", mutation: m }, agent);
+  const pr = (): LogRecord =>
+    mutation({
+      kind: "ADD_NODE",
+      id: nodeId("pr:9"),
+      label: "PullRequest",
+      props: { number: 9, state: "open" },
+    });
+  const verdict = (v: string): LogRecord =>
+    mutation(
+      {
+        kind: "ADD_NODE",
+        id: nodeId(`review:9:${v}`),
+        label: "Review",
+        props: { pr: 9, reviewer: "rev", verdict: v },
+      },
+      "rev",
+    );
+  const merged = (version: number): LogRecord =>
+    mutation({
+      kind: "UPDATE_NODE",
+      id: nodeId("pr:9"),
+      expectedVersion: version as never,
+      props: { state: "merged" },
+    });
+
+  it("approve then merge ⇒ ok", () => {
+    const s = sessionFrom([pr(), verdict("approve"), merged(1)]);
+    expect(approvedBeforeMerge()(s).ok).toBe(true);
+  });
+
+  it("merge with no approve ⇒ names the PR", () => {
+    const s = sessionFrom([pr(), merged(1)]);
+    expect(approvedBeforeMerge()(s)).toEqual({
+      ok: false,
+      message: "merged without a standing approve: pr:9",
+    });
+  });
+
+  it("approve, then request_changes, then merge ⇒ fails", () => {
+    const s = sessionFrom([pr(), verdict("approve"), verdict("request_changes"), merged(1)]);
+    expect(approvedBeforeMerge()(s).ok).toBe(false);
+  });
+
+  it("merge, then approve ⇒ fails — the state alone would have passed", () => {
+    const s = sessionFrom([pr(), merged(1), verdict("approve")]);
+    expect(approvedBeforeMerge()(s).ok).toBe(false);
   });
 });
