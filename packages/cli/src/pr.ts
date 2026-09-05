@@ -18,6 +18,7 @@ import {
   touchesEdgeId,
   withBoard,
 } from "./files.js";
+import { reviewGate } from "./review-gate.js";
 
 const badNumber = (raw: string): void => {
   console.error(`whipple3 pr: --number must be a positive integer, got ${JSON.stringify(raw)}`);
@@ -110,6 +111,9 @@ export const checkPr = async (
 ): Promise<Outcome> => {
   const found = await readPr(board, n);
   if (found === null) return "error";
+  const review = reviewGate(found.slice, n);
+  for (const line of review) console.log(line);
+  if (review.length > 0) return "held";
   const held = heldByOthers(found.slice, me, Date.now());
   for (const [path, holder] of held) console.log(`held ${path} by ${holder}`);
   if (held.length > 0) return "held";
