@@ -1,0 +1,30 @@
+{
+  "acl": {
+    "reviewer-1": {
+      "read": [
+        "File",
+        "PullRequest",
+        "ReviewComment",
+        "Review",
+        "touches",
+        "part_of",
+        "comments_on",
+        "reviews"
+      ],
+      "write": ["Review", "ReviewComment", "reviews", "part_of", "comments_on", "File"]
+    },
+    "feat/x": {
+      "read": [
+        "File",
+        "PullRequest",
+        "ReviewComment",
+        "Review",
+        "touches",
+        "part_of",
+        "comments_on",
+        "reviews"
+      ],
+      "write": ["File", "PullRequest", "ReviewComment", "touches"]
+    }
+  }
+}
