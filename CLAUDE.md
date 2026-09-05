@@ -66,7 +66,7 @@ packages/transport-mcp  tools.ts (Zod schemas) · server.ts + session.ts (W1)
 packages/transcript     Claude Code transcript parser + projection to a whipple3 log
 packages/assert         trajectory assertions over a finished log (Stage 7 tier 2)
 tools/duplication       work-paid-twice measurement over transcripts (ADR-010 evidence)
-packages/cli            whipple3 bin: mcp | serve | ping | claim | release | distill | studio | replay
+packages/cli            whipple3 bin: mcp | serve | ping | claim | release | pr | merge | review | comment | distill | studio | replay
 packages/studio         Stage 3 — owned by the studio wave-package only
 examples/claude-code-plugin   the /audit demo: scanner, auditors, fixer
 ```

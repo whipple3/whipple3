@@ -10,6 +10,21 @@ First release. A typed, ephemeral, event-sourced blackboard for coordinating AI 
 served over MCP. Everything below is covered by the CI gate (strict TypeScript, Biome,
 dependency-cruiser import direction, Vitest + fast-check property tests).
 
+### `whipple3 review` / `whipple3 comment` — typed review behind the gate
+
+- `Review` (one node per reviewer per PR; a changed verdict is an UPDATE, so the log keeps
+  the history) and `ReviewComment` (`severity: blocking | nit`, `status: open | addressed |
+  wontfix`) nodes, with `reviews`, `part_of` and `comments_on` edges. `whipple3 review
+  --verdict approve|request_changes`, `whipple3 comment post <body> --path … [--line] [--severity]`,
+  `whipple3 comment addressed|wontfix <id…>`.
+- `pr check` (and so `merge`) refuses on `request_changes` or an open blocking comment
+  before it looks at file holds. No review is not a refusal.
+- `examples/review-policy.json`: the `Review` label is writable by the reviewer alone; a
+  branch approving itself is an `acl.denied`. `examples/claude-code-plugin/agents/reviewer.md`
+  is the subagent that plays the reviewer.
+- `@whipple3/assert`: `approvedBeforeMerge()` walks the log in order — a merge with no
+  standing approve, or one that was revoked before the merge, fails.
+
 ### `whipple3 pr` / `whipple3 merge` — the board in front of the forge
 
 - `whipple3 pr open <paths…> --agent <branch> --number <n>` records a `PullRequest` node with

@@ -128,6 +128,27 @@ claims held. The log keeps every PR as a `PullRequest` node, so `replay`, `disti
 `@whipple3/assert` see who touched what, who was refused, and when the hold ended — the record
 agent-scale git hosting (Cursor Origin, GitHub) does not produce.
 
+**Review on the board.** A forge stores review as threads of prose; the board stores it as
+typed state behind an ACL. The forge keeps human review, the board keeps agent review, and
+nothing is synced between them. A reviewer identity posts comments and one verdict; the
+branch marks comments addressed; the merge gate reads the state, never the thread:
+
+```bash
+whipple3 comment post "Null check on line 12" --agent reviewer-1 --number 12 --path src/pay.ts --severity blocking
+whipple3 review --agent reviewer-1 --number 12 --verdict request_changes
+whipple3 pr check --agent feat/a --number 12        # changes requested by reviewer-1 · blocking: comment:12:… · exit 2
+whipple3 comment addressed comment:12:null-check-on-line-12 --agent feat/a --number 12
+whipple3 review --agent reviewer-1 --number 12 --verdict approve
+whipple3 merge --agent feat/a --number 12          # clear → forge → released
+```
+
+Start the board with `whipple3 serve --policy examples/review-policy.json` and the `Review`
+label is writable by the reviewer alone: a branch approving itself is refused, and the refusal
+is an `acl.denied` in the log. No review is not a refusal — the forge's own protection still
+covers the human side. In CI, `approvedBeforeMerge()` from `@whipple3/assert` reads the log in
+order and fails any merge that was not preceded by a standing approve. The reviewer subagent
+for Claude Code is [examples/claude-code-plugin/agents/reviewer.md](./examples/claude-code-plugin/agents/reviewer.md).
+
 **6. Assert it in CI.** Eval tools judge what an agent *said*. `@whipple3/assert` judges
 what a fleet *left behind* — the typed state, and the enforcement record of reaching it:
 

@@ -142,8 +142,11 @@ Turning "not locked to any vendor" from a claim into a recording.
   a real host needed it).*
 - **Forge gate** ✅ *(2026-09-05)*: `whipple3 pr open|check|merged` + `whipple3 merge` put the
   board's claims in front of any forge's merge (`gh` today, Cursor Origin when its CLI/API is
-  documented). Design: `docs/plans/2026-09-05-forge-gate-design.md`. Next, only if it finds
-  users: review primitives on the board (option 2 there).
+  documented). Design: `docs/plans/2026-09-05-forge-gate-design.md`.
+- **Review on the board** ✅ *(2026-09-05)*: `Review` / `ReviewComment` nodes behind the gate,
+  reviewer-only verdict via policy, `approvedBeforeMerge()` in assert.
+  Design: `docs/plans/2026-09-05-review-on-board-design.md`. The forge keeps human review;
+  nothing is synced. Later, if asked: `--require-approval`, one-way verdict export.
 - `SandboxProvider` port: dockerode adapter first; E2B / Daytona / NanoClaw-pattern adapters
   after. We ride the execution layer, we never rebuild it.
 
