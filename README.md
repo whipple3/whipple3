@@ -168,7 +168,9 @@ Pre-release (v0.1 vertical slice — see [SPEC.md](./SPEC.md) §12). What's real
   socket, per-agent connections with identity bound at connect.
 - `whipple3` — the CLI: `serve` (the board backend, with `--policy`), `mcp --board <sock>
   --agent <id>` per-agent proxies (or `mcp --agent <id>` standalone), `distill <log>` →
-  report.md, `studio <log> | --demo` — the live graph, served from the bin with the built
+  report.md, `claim <paths…> --agent <id>` / `release` — a claim a shell can make, so a
+  PreToolUse hook can refuse an edit on a path another branch holds (exit 2 names the holder),
+  `studio <log> | --demo` — the live graph, served from the bin with the built
   page shipped beside it — and `replay <log>`, which re-folds the log through the pure
   reducer and exits non-zero if it fails to reproduce itself. Every command in `--help`
   works — nothing there is a stub. Session traces live under `.whipple3/`.

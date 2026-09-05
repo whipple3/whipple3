@@ -15,4 +15,4 @@ export type {
 } from "./session.js";
 export { createSession } from "./session.js";
 export type { ToolName } from "./tools.js";
-export { toolInputs } from "./tools.js";
+export { CLAIM_TTL_MAX_MS, toolInputs } from "./tools.js";

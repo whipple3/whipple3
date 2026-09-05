@@ -10,6 +10,15 @@ First release. A typed, ephemeral, event-sourced blackboard for coordinating AI 
 served over MCP. Everything below is covered by the CI gate (strict TypeScript, Biome,
 dependency-cruiser import direction, Vitest + fast-check property tests).
 
+### `whipple3 claim` / `whipple3 release` — a claim a shell can make
+
+- `whipple3 claim <paths…> --agent <id> [--ttl s]` creates a `File` node per path on first
+  sight and claims it as `--agent`; renewing your own hold succeeds, another identity's hold
+  prints `held <path> by <holder>` and exits 2 (board unreachable exits 1). `release` hands
+  paths back. Built for a PreToolUse hook in a repo where parallel branches each run their
+  own agent: identity = branch name, so a cross-branch file overlap is refused at the first
+  edit instead of discovered at merge.
+
 ### The board and its six tools
 
 - A shared typed graph that agents mutate through six constrained MCP tools —

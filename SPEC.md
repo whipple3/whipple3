@@ -131,7 +131,7 @@ packages/
   studio/         # graphology + sigma.js live ONLY here (ADR-004)
   transcript/     # Claude Code transcript → whipple3 log (foreign format lives ONLY here)
   assert/         # trajectory assertions over a finished log (Stage 7 tier 2)
-  cli/            # mcp | serve | ping | distill | studio | replay
+  cli/            # mcp | serve | ping | claim | release | distill | studio | replay
 examples/
   claude-code-plugin/   # .mcp.json + .claude/agents/* + /audit command
 ```
