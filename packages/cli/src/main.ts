@@ -4,6 +4,7 @@ import { claim } from "./claim.js";
 import { distill } from "./distill.js";
 import { mcp } from "./mcp.js";
 import { ping } from "./ping.js";
+import { pr } from "./pr.js";
 import { release } from "./release.js";
 import { replay } from "./replay.js";
 import { serve } from "./serve.js";
@@ -28,6 +29,7 @@ const main = defineCommand({
     ping,
     claim,
     release,
+    pr,
     distill,
     studio,
     replay,
