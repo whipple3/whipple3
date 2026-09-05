@@ -47,7 +47,7 @@ The verdict label is reviewer-only: a branch that tries to approve itself is ref
 
 ```
 whipple3 review  --agent <reviewer> --number <n> --verdict approve|request_changes
-whipple3 comment --agent <reviewer> --number <n> --path <p> [--line <l>] [--severity blocking|nit] <body>
+whipple3 comment post <body> --agent <reviewer> --number <n> --path <p> [--line <l>] [--severity blocking|nit]
 whipple3 comment addressed|wontfix --agent <branch> --number <n> <comment-id…>
 ```
 

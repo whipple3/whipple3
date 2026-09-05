@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty";
 import { claim } from "./claim.js";
+import { comment } from "./comment.js";
 import { distill } from "./distill.js";
 import { mcp } from "./mcp.js";
 import { merge } from "./merge.js";
@@ -8,6 +9,7 @@ import { ping } from "./ping.js";
 import { pr } from "./pr.js";
 import { release } from "./release.js";
 import { replay } from "./replay.js";
+import { review } from "./review.js";
 import { serve } from "./serve.js";
 import { studio } from "./studio.js";
 import { VERSION } from "./version.js";
@@ -32,6 +34,8 @@ const main = defineCommand({
     release,
     pr,
     merge,
+    review,
+    comment,
     distill,
     studio,
     replay,

@@ -162,6 +162,100 @@ describe("whipple3 merge — gate, forge command, release; stops at the first fa
   });
 });
 
+describe("whipple3 review / comment — typed review in front of the gate", () => {
+  it("request_changes blocks; approve clears", async () => {
+    await run(cwd, "pr", "open", "src/f.ts", "--agent", "feat/a", "--number", "16");
+    const rc = await run(
+      cwd,
+      "review",
+      "--agent",
+      "rev-1",
+      "--number",
+      "16",
+      "--verdict",
+      "request_changes",
+    );
+    expect(rc.stdout).toBe("review 16: request_changes by rev-1\n");
+    expect(rc.code).toBe(0);
+    const blocked = await run(cwd, "pr", "check", "--agent", "feat/a", "--number", "16");
+    expect(blocked.stdout).toBe("changes requested by rev-1\n");
+    expect(blocked.code).toBe(2);
+    const ap = await run(
+      cwd,
+      "review",
+      "--agent",
+      "rev-1",
+      "--number",
+      "16",
+      "--verdict",
+      "approve",
+    );
+    expect(ap.stdout).toBe("review 16: approve by rev-1\n");
+    expect((await run(cwd, "pr", "check", "--agent", "feat/a", "--number", "16")).code).toBe(0);
+  });
+
+  it("a bad verdict is refused, exit 1", async () => {
+    const r = await run(cwd, "review", "--agent", "rev-1", "--number", "16", "--verdict", "lgtm");
+    expect(r.stderr).toContain("--verdict");
+    expect(r.code).toBe(1);
+  });
+
+  it("an open blocking comment blocks until addressed", async () => {
+    const c = await run(
+      cwd,
+      "comment",
+      "post",
+      "Null check!",
+      "--agent",
+      "rev-1",
+      "--number",
+      "16",
+      "--path",
+      "src/f.ts",
+      "--severity",
+      "blocking",
+    );
+    expect(c.stderr).toBe("");
+    expect(c.stdout).toBe("comment:16:null-check\n");
+    expect(c.code).toBe(0);
+    const blocked = await run(cwd, "pr", "check", "--agent", "feat/a", "--number", "16");
+    expect(blocked.stdout).toBe("blocking: comment:16:null-check src/f.ts\n");
+    expect(blocked.code).toBe(2);
+    const done = await run(
+      cwd,
+      "comment",
+      "addressed",
+      "comment:16:null-check",
+      "--agent",
+      "feat/a",
+      "--number",
+      "16",
+    );
+    expect(done.stdout).toBe("addressed comment:16:null-check\n");
+    expect((await run(cwd, "pr", "check", "--agent", "feat/a", "--number", "16")).stdout).toBe(
+      "clear\n",
+    );
+  });
+
+  it("a nit never blocks; the merge then releases", async () => {
+    await run(
+      cwd,
+      "comment",
+      "post",
+      "rename",
+      "--agent",
+      "rev-1",
+      "--number",
+      "16",
+      "--path",
+      "src/f.ts",
+    );
+    const good = await run(cwd, "merge", "--agent", "feat/a", "--number", "16", "--", "true");
+    expect(good.stdout).toBe("clear\npr 16 merged\nreleased src/f.ts\n");
+    expect(good.code).toBe(0);
+  });
+});
+
 describe("the log proves it — replay and @whipple3/assert accept what the gate left behind", () => {
   it("replay finds no violation; every PR merged; no claim outlives the session", async () => {
     await run(cwd, "release", "src/a.ts", "src/c.ts", "src/d.ts", "--agent", "feat/b");
@@ -174,7 +268,7 @@ describe("the log proves it — replay and @whipple3/assert accept what the gate
     const report = assertRun(
       session,
       none("PullRequest", (p) => p.state === "open"),
-      atLeast("PullRequest", 4),
+      atLeast("PullRequest", 5),
       allClaimsReleased(),
     );
     expect(report.ok, format(report)).toBe(true);
