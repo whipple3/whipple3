@@ -228,6 +228,36 @@ before whipple3 existed.** That changes what the evidence means, in both directi
 Memory. Agent authoring. The execution layer. Messaging channels. Each one converts whipple3
 from irreplaceable infrastructure into an inferior competitor.
 
+### The forge, specifically (2026-09-05)
+
+The investor question is "why depend on GitHub, or on Cursor Origin?" The answer is that we do
+not depend on a forge; we depend on git, which is a protocol, not a company.
+
+- `whipple3 merge` runs whatever follows `--`: `gh pr merge`, Origin's CLI when it exists,
+  or `git push` to a bare repo on your own box. The board never learns which forge it was.
+- The PR, the review comments, the verdict, the ACL over who may issue one, and the log that
+  proves the order — all live on the board. The forge is left with one job: storing commits.
+  That job is a commodity, and git already does it: a bare repo behind SSH is a git server.
+- What a forge adds on top — PR UI, review threads, CI, org permissions, SLA — is exactly
+  what Cursor bought Graphite for and still shipped without CI, public repos, or issues.
+  Rebuilding it is years, competes with a $60B owner, and moves nothing toward revenue.
+
+So the dependency runs the other way: after the merge gate and review-on-the-board, the
+forge is a storage layer *under* whipple3. If GitHub vanished tomorrow,
+`whipple3 merge -- git push origin main` works the same day, and Studio is the UI.
+
+The one place a forge dependency does bite: a cloud merge queue cannot dial a local socket.
+The fix is a persistent board with a small endpoint (ADR-009 keeps the door open), not a
+forge. It goes on the roadmap when a host asks for it.
+
+A field note from the author's own product the same day: a green PR waited three days behind
+"require branches up to date" on a 25-minute build with a commit landing on `main` every
+5–12 minutes — four merges refused, ten automatic head updates before a quiet window. The
+forge's rule is blind: it re-verifies against *every* commit because it cannot tell which ones
+touch the PR's files. The board can. When no other branch held any of the PR's files, the
+"up to date" rebuild is proving nothing. That is the gate's next argument, and the next
+measurement to publish.
+
 ## 6. Threats, in order
 
 1. **Anthropic ships native shared state for subagents.** Erases the first wedge directly.
