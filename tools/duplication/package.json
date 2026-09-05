@@ -1,0 +1,23 @@
+{
+  "name": "@whipple3/duplication",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "How much of a multi-agent session's work was paid for more than once — the instrument behind ADR-010's measurement.",
+  "exports": {
+    ".": "./src/main.ts"
+  },
+  "bin": {
+    "duplication": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@whipple3/transcript": "workspace:*",
+    "zod": "^4.0.0"
+  }
+}

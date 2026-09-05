@@ -1,0 +1,48 @@
+{
+  "name": "@whipple3/assert",
+  "version": "0.1.0",
+  "description": "Assert over a coordination trajectory: the typed state a fleet of agents left behind, and the enforcement record of getting there.",
+  "keywords": [
+    "ai-agents",
+    "multi-agent",
+    "evals",
+    "assertions",
+    "event-sourcing",
+    "ci"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/whipple3/whipple3#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whipple3/whipple3.git",
+    "directory": "packages/assert"
+  },
+  "bugs": "https://github.com/whipple3/whipple3/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@whipple3/core": "workspace:*",
+    "@whipple3/log": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  }
+}
