@@ -48,6 +48,9 @@ importers:
         specifier: ^0.1.6
         version: 0.1.6
     devDependencies:
+      '@whipple3/assert':
+        specifier: workspace:*
+        version: link:../assert
       '@whipple3/core':
         specifier: workspace:*
         version: link:../core

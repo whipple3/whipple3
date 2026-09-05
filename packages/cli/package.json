@@ -39,6 +39,7 @@
     "citty": "^0.1.6"
   },
   "devDependencies": {
+    "@whipple3/assert": "workspace:*",
     "@whipple3/core": "workspace:*",
     "@whipple3/log": "workspace:*",
     "@whipple3/studio": "workspace:*",

@@ -1,8 +1,16 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  allClaimsReleased,
+  run as assertRun,
+  atLeast,
+  format,
+  none,
+  sessionFromLog,
+} from "@whipple3/assert";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const bin = fileURLToPath(new URL("../dist/main.js", import.meta.url));
@@ -151,5 +159,24 @@ describe("whipple3 merge — gate, forge command, release; stops at the first fa
     const good = await run(cwd, "merge", "--agent", "feat/a", "--number", "15", "--", "true");
     expect(good.stdout).toBe("clear\npr 15 merged\nreleased src/e.ts\n");
     expect(good.code).toBe(0);
+  });
+});
+
+describe("the log proves it — replay and @whipple3/assert accept what the gate left behind", () => {
+  it("replay finds no violation; every PR merged; no claim outlives the session", async () => {
+    await run(cwd, "release", "src/a.ts", "src/c.ts", "src/d.ts", "--agent", "feat/b");
+    const dir = join(cwd, ".whipple3");
+    const log = readdirSync(dir).find((f) => f.endsWith(".ndjson"));
+    if (log === undefined) throw new Error("serve wrote no session log");
+    const replayed = await run(cwd, "replay", join(dir, log));
+    expect(replayed.code).toBe(0);
+    const session = await sessionFromLog(join(dir, log));
+    const report = assertRun(
+      session,
+      none("PullRequest", (p) => p.state === "open"),
+      atLeast("PullRequest", 4),
+      allClaimsReleased(),
+    );
+    expect(report.ok, format(report)).toBe(true);
   });
 });
