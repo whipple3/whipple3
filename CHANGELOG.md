@@ -10,6 +10,20 @@ First release. A typed, ephemeral, event-sourced blackboard for coordinating AI 
 served over MCP. Everything below is covered by the CI gate (strict TypeScript, Biome,
 dependency-cruiser import direction, Vitest + fast-check property tests).
 
+### `whipple3 pr` / `whipple3 merge` — the board in front of the forge
+
+- `whipple3 pr open <paths…> --agent <branch> --number <n>` records a `PullRequest` node with
+  `touches` edges to the `File` nodes and claims them; `pr check` exits 0 when every touched
+  path is free or held by `--agent`, 2 naming the holder otherwise; `pr merged` flips the node
+  to `merged` and releases the paths. `whipple3 merge` chains check → forge command
+  (`gh pr merge <n>` unless a command follows `--`) → merged, and stops at the first failure:
+  a held path never reaches the forge, a failed forge never releases a claim, an unreachable
+  board is exit 1. No new event type — PRs are ordinary `graph.mutation`s, so replay, distill,
+  Studio and `@whipple3/assert` see them unchanged.
+- `Slice.claims`: every slice now carries the raw `ClaimRecord`s of its nodes (ACL-filtered
+  with the nodes; expiry is the reader's comparison against `expiresAt`), so a read-only gate
+  can name a holder without taking a lease.
+
 ### `whipple3 claim` / `whipple3 release` — a claim a shell can make
 
 - `whipple3 claim <paths…> --agent <id> [--ttl s]` creates a `File` node per path on first

@@ -110,6 +110,24 @@ It is a normal whipple3 log, so `whipple3 replay` and `whipple3 distill` work on
 Live graph, claims tinted per holding agent, per-node history, a time-travel scrubber over
 the log.
 
+**Merge gate.** The same claims stand in front of the forge. A branch's agent records the PR
+it opened and the files it touched; `whipple3 merge` refuses to merge while another branch
+still holds one of them, runs the forge's own merge only when the board is clear, and hands
+the files back afterwards. The board runs locally, so the gate runs where the board runs —
+wrap the merge instead of waiting for a cloud queue to dial a socket it cannot reach:
+
+```bash
+whipple3 pr open src/pay.ts --agent feat/a --number 12     # PR node + touches edges + claims
+whipple3 pr check --agent feat/a --number 12               # 0 clear · 2 held by <branch> · 1 no board
+whipple3 merge --agent feat/a --number 12                  # check → gh pr merge 12 → release
+whipple3 merge --agent feat/a --number 12 -- <forge cmd>   # any forge; Origin when it has a CLI
+```
+
+Fail closed: an unreachable board is exit 1, never a merge. A failed forge command leaves the
+claims held. The log keeps every PR as a `PullRequest` node, so `replay`, `distill`, Studio and
+`@whipple3/assert` see who touched what, who was refused, and when the hold ended — the record
+agent-scale git hosting (Cursor Origin, GitHub) does not produce.
+
 **6. Assert it in CI.** Eval tools judge what an agent *said*. `@whipple3/assert` judges
 what a fleet *left behind* — the typed state, and the enforcement record of reaching it:
 
