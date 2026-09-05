@@ -93,3 +93,39 @@ describe("whipple3 pr open — the PR node, its touches edges, its claims", () =
     expect(r.code).toBe(1);
   });
 });
+
+describe("whipple3 pr check — clear only when every touched file is free or mine", () => {
+  it("held by another branch ⇒ names holder, exit 2", async () => {
+    const r = await run(cwd, "pr", "check", "--agent", "feat/a", "--number", "13");
+    expect(r.stdout).toBe("held src/c.ts by feat/b\n");
+    expect(r.code).toBe(2);
+  });
+
+  it("all mine ⇒ clear, exit 0", async () => {
+    const r = await run(cwd, "pr", "check", "--agent", "feat/a", "--number", "12");
+    expect(r.stdout).toBe("clear\n");
+    expect(r.code).toBe(0);
+  });
+
+  it("unknown PR ⇒ exit 1", async () => {
+    const r = await run(cwd, "pr", "check", "--agent", "feat/a", "--number", "99");
+    expect(r.stderr).toContain("no such pr");
+    expect(r.code).toBe(1);
+  });
+});
+
+describe("whipple3 pr merged — releases the branch's files, marks the node", () => {
+  it("releases every touched path held by me, exit 0", async () => {
+    const r = await run(cwd, "pr", "merged", "--agent", "feat/a", "--number", "12");
+    expect(r.stdout).toBe("pr 12 merged\nreleased src/a.ts\nreleased src/b.ts\n");
+    expect(r.code).toBe(0);
+    const again = await run(cwd, "claim", "src/a.ts", "--agent", "feat/b");
+    expect(again.code).toBe(0);
+  });
+
+  it("a path another branch holds is reported, not failed", async () => {
+    const r = await run(cwd, "pr", "merged", "--agent", "feat/a", "--number", "13");
+    expect(r.stdout).toBe("pr 13 merged\nnot held src/c.ts\n");
+    expect(r.code).toBe(0);
+  });
+});
