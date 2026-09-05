@@ -10,7 +10,7 @@
       "*.md",
       "!**/dist",
       "!**/*.tsbuildinfo",
-      "!test/fixtures/**"
+      "!test/fixtures"
     ]
   }
 }

@@ -1,3 +1,10 @@
+export {
+  type AssistantRecord,
+  parseTranscript,
+  type Transcript,
+  type TranscriptRecord,
+  type Usage,
+} from "@whipple3/transcript";
 export { type BoardMetrics, extractBoardMetrics } from "./board.js";
 export { renderComparison } from "./compare.js";
 export { renderExtract } from "./extract.js";
@@ -17,10 +24,3 @@ export {
   type SidecarTranscript,
   type SidechainTotals,
 } from "./subagents.js";
-export {
-  type AssistantRecord,
-  parseTranscript,
-  type Transcript,
-  type TranscriptRecord,
-  type Usage,
-} from "./transcript.js";

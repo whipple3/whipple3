@@ -28,6 +28,8 @@ export interface AssistantRecord {
   readonly usage: Usage | null;
   /** Tool name when this line's single content block is a tool_use. */
   readonly toolUse: string | null;
+  /** That block's raw `input`. Foreign and per-tool: `unknown` on purpose, parse at use. */
+  readonly toolInput: unknown;
 }
 
 export interface OtherRecord {
@@ -64,7 +66,13 @@ const lineSchema = z.looseObject({
     .optional(),
 });
 
-const contentBlockSchema = z.looseObject({ type: z.string(), name: z.string().optional() });
+const contentBlockSchema = z.looseObject({
+  type: z.string(),
+  name: z.string().optional(),
+  // Foreign, per-tool, and unversioned — kept as `unknown` and never interpreted here.
+  // Consumers that need a field parse it themselves at their own boundary.
+  input: z.unknown().optional(),
+});
 
 const parseTimestamp = (iso: string | undefined): number | null => {
   if (iso === undefined) return null;
@@ -82,27 +90,31 @@ const toUsage = (u: z.output<typeof usageSchema> | undefined): Usage | null =>
         output: u.output_tokens,
       };
 
-const toolUseName = (content: unknown): string | null => {
-  if (!Array.isArray(content)) return null;
+const toolUse = (content: unknown): { name: string | null; input: unknown } => {
+  if (!Array.isArray(content)) return { name: null, input: undefined };
   for (const raw of content) {
     const block = contentBlockSchema.safeParse(raw);
-    if (block.success && block.data.type === "tool_use") return block.data.name ?? null;
+    if (block.success && block.data.type === "tool_use")
+      return { name: block.data.name ?? null, input: block.data.input };
   }
-  return null;
+  return { name: null, input: undefined };
 };
 
 const toRecord = (line: z.output<typeof lineSchema>): TranscriptRecord => {
   const sidechain = line.isSidechain === true;
   const timestamp = parseTimestamp(line.timestamp);
-  if (line.type === "assistant")
+  if (line.type === "assistant") {
+    const tool = toolUse(line.message?.content);
     return {
       kind: "assistant",
       sidechain,
       timestamp,
       requestId: line.requestId ?? null,
       usage: toUsage(line.message?.usage),
-      toolUse: toolUseName(line.message?.content),
+      toolUse: tool.name,
+      toolInput: tool.input,
     };
+  }
   const kind = line.type === "user" || line.type === "system" ? line.type : "other";
   return { kind, sidechain, timestamp, type: line.type };
 };

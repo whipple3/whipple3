@@ -1,4 +1,4 @@
-import type { AssistantRecord, Transcript, Usage } from "./transcript.js";
+import type { AssistantRecord, Transcript, Usage } from "@whipple3/transcript";
 
 /**
  * Orchestrator-context accounting over the MAIN thread only. Token counts come from the

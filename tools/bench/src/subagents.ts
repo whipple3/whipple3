@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
+import { parseTranscript, type Transcript } from "@whipple3/transcript";
 import { z } from "zod";
 import { extractTranscriptMetrics, type TranscriptMetrics } from "./metrics.js";
-import { parseTranscript, type Transcript } from "./transcript.js";
 
 /**
  * Current-format subagent sidecars: `<dir>/<sessionId>/subagents/agent-*.jsonl`, every

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
+import { parseTranscript } from "@whipple3/transcript";
 import { describe, expect, it } from "vitest";
 import { extractTranscriptMetrics } from "../src/metrics.js";
-import { parseTranscript } from "../src/transcript.js";
 
 /**
  * Fixtures distilled from the REAL 2026-08-11 live /whipple3:audit run (session

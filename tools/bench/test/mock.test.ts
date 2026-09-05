@@ -1,11 +1,11 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parseTranscript } from "@whipple3/transcript";
 import { describe, expect, it } from "vitest";
 import { renderComparison } from "../src/compare.js";
 import { mockVanillaSession, mockWhipple3Session, writeMockSession } from "../src/mock.js";
 import { loadSessionMetrics } from "../src/subagents.js";
-import { parseTranscript } from "../src/transcript.js";
 
 const dir = mkdtempSync(join(tmpdir(), "bench-mock-"));
 const w3Path = writeMockSession(dir, "whipple3-main", mockWhipple3Session());

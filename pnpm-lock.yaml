@@ -30,6 +30,15 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@22.20.1)(lightningcss@1.33.0)
 
+  packages/assert:
+    dependencies:
+      '@whipple3/core':
+        specifier: workspace:*
+        version: link:../core
+      '@whipple3/log':
+        specifier: workspace:*
+        version: link:../log
+
   packages/cli:
     dependencies:
       '@modelcontextprotocol/sdk':
@@ -45,6 +54,12 @@ importers:
       '@whipple3/log':
         specifier: workspace:*
         version: link:../log
+      '@whipple3/studio':
+        specifier: workspace:*
+        version: link:../studio
+      '@whipple3/transcript':
+        specifier: workspace:*
+        version: link:../transcript
       '@whipple3/transport-mcp':
         specifier: workspace:*
         version: link:../transport-mcp
@@ -92,6 +107,15 @@ importers:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@22.20.1)(esbuild@0.28.2)
 
+  packages/transcript:
+    dependencies:
+      '@whipple3/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
+
   packages/transport-mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
@@ -134,9 +158,21 @@ importers:
       '@whipple3/log':
         specifier: workspace:*
         version: link:../../packages/log
+      '@whipple3/transcript':
+        specifier: workspace:*
+        version: link:../../packages/transcript
       '@whipple3/transport-mcp':
         specifier: workspace:*
         version: link:../../packages/transport-mcp
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
+
+  tools/duplication:
+    dependencies:
+      '@whipple3/transcript':
+        specifier: workspace:*
+        version: link:../../packages/transcript
       zod:
         specifier: ^4.0.0
         version: 4.4.3
